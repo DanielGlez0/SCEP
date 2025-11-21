@@ -201,30 +201,13 @@ const CuestionariosDisponibles = () => {
                     sx={{ height: '100%' }}
                   >
                     <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <AssignmentIcon
-                            sx={{ fontSize: 40, color: 'primary.main', mr: 2 }}
-                          />
-                          <Typography variant="h6" fontWeight="bold" color="primary">
-                            {cuestionario.Titulo}
-                          </Typography>
-                        </Box>
-                        {cuestionario.completado && (
-                          <Box
-                            sx={{
-                              bgcolor: '#4caf50',
-                              color: 'white',
-                              px: 2,
-                              py: 0.5,
-                              borderRadius: 1,
-                              fontSize: '0.85rem',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            {cuestionario.puntaje_total} pts
-                          </Box>
-                        )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <AssignmentIcon
+                          sx={{ fontSize: 40, color: 'primary.main', mr: 2 }}
+                        />
+                        <Typography variant="h6" fontWeight="bold" color="primary">
+                          {cuestionario.Titulo}
+                        </Typography>
                       </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         {cuestionario.Descripcion || 'Sin descripción'}
