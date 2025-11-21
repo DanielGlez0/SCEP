@@ -10,9 +10,11 @@ import {
   Grid,
   Container,
   CircularProgress,
-  Alert
+  Alert,
+  Button
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import LogoutIcon from '@mui/icons-material/Logout';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const CuestionariosDisponibles = () => {
@@ -28,13 +30,46 @@ const CuestionariosDisponibles = () => {
   const cargarCuestionarios = async () => {
     try {
       setCargando(true);
+      
+      // Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No se pudo obtener el usuario');
+
+      // Obtener el ID del usuario en la tabla usuarios
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+
+      if (usuarioError) throw usuarioError;
+
+      // Obtener cuestionarios asignados con información del cuestionario
       const { data, error } = await supabase
-        .from('cuestionarios')
-        .select('*')
-        .order('id', { ascending: false });
+        .from('cuestionarios_asignados')
+        .select(`
+          id,
+          cuestionario_id,
+          completado,
+          puntaje_total,
+          fecha_completado,
+          cuestionarios (id, Titulo, Descripcion)
+        `)
+        .eq('paciente_id', usuarioData.id)
+        .order('fecha_asignacion', { ascending: false });
 
       if (error) throw error;
-      setCuestionarios(data || []);
+
+      // Transformar datos para incluir información de asignación
+      const cuestionariosConEstado = (data || []).map(asignacion => ({
+        ...asignacion.cuestionarios,
+        asignacion_id: asignacion.id,
+        completado: asignacion.completado,
+        puntaje_total: asignacion.puntaje_total,
+        fecha_completado: asignacion.fecha_completado
+      }));
+
+      setCuestionarios(cuestionariosConEstado);
     } catch (err) {
       console.error('Error al cargar cuestionarios:', err);
       setError('No se pudieron cargar los cuestionarios');
@@ -43,8 +78,19 @@ const CuestionariosDisponibles = () => {
     }
   };
 
-  const handleSeleccionarCuestionario = (id) => {
-    navigate(`/responder-cuestionario/${id}`);
+  const handleSeleccionarCuestionario = (cuestionario) => {
+    // Pasar el ID de la asignación en lugar del ID del cuestionario
+    navigate(`/responder-cuestionario/${cuestionario.asignacion_id}`);
+  };
+
+  const cerrarSesion = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error al cerrar sesión:', error);
+      alert('Error al cerrar sesión');
+    } else {
+      navigate('/login');
+    }
   };
 
   if (cargando) {
@@ -81,15 +127,36 @@ const CuestionariosDisponibles = () => {
             borderRadius: 2,
             boxShadow: 3,
             mb: 4,
-            textAlign: 'center'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}
         >
-          <Typography variant="h4" fontWeight="bold" color="primary">
-            Cuestionarios Disponibles
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-            Selecciona un cuestionario para responder
-          </Typography>
+          <Box sx={{ flex: 1, textAlign: 'center' }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              Cuestionarios Disponibles
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+              Selecciona un cuestionario para responder
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<LogoutIcon />}
+            onClick={cerrarSesion}
+            sx={{
+              fontWeight: 'bold',
+              borderWidth: 2,
+              '&:hover': {
+                borderWidth: 2,
+                bgcolor: 'error.main',
+                color: 'white'
+              }
+            }}
+          >
+            Cerrar Sesión
+          </Button>
         </Box>
 
         {error && (
@@ -109,19 +176,20 @@ const CuestionariosDisponibles = () => {
             }}
           >
             <Typography variant="h6" color="text.secondary">
-              No hay cuestionarios disponibles en este momento
+              No tienes cuestionarios asignados en este momento
             </Typography>
           </Box>
         ) : (
           <Grid container spacing={3}>
             {cuestionarios.map((cuestionario) => (
-              <Grid item xs={12} sm={6} md={4} key={cuestionario.id}>
+              <Grid item xs={12} sm={6} md={4} key={cuestionario.asignacion_id}>
                 <Card
                   sx={{
                     height: '100%',
                     bgcolor: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(10px)',
                     transition: 'all 0.3s ease',
+                    border: cuestionario.completado ? '2px solid #4caf50' : '2px solid #ff9800',
                     '&:hover': {
                       transform: 'translateY(-8px)',
                       boxShadow: 6
@@ -129,21 +197,67 @@ const CuestionariosDisponibles = () => {
                   }}
                 >
                   <CardActionArea
-                    onClick={() => handleSeleccionarCuestionario(cuestionario.id)}
+                    onClick={() => handleSeleccionarCuestionario(cuestionario)}
                     sx={{ height: '100%' }}
                   >
                     <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <AssignmentIcon
-                          sx={{ fontSize: 40, color: 'primary.main', mr: 2 }}
-                        />
-                        <Typography variant="h6" fontWeight="bold" color="primary">
-                          {cuestionario.Titulo}
-                        </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <AssignmentIcon
+                            sx={{ fontSize: 40, color: 'primary.main', mr: 2 }}
+                          />
+                          <Typography variant="h6" fontWeight="bold" color="primary">
+                            {cuestionario.Titulo}
+                          </Typography>
+                        </Box>
+                        {cuestionario.completado && (
+                          <Box
+                            sx={{
+                              bgcolor: '#4caf50',
+                              color: 'white',
+                              px: 2,
+                              py: 0.5,
+                              borderRadius: 1,
+                              fontSize: '0.85rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            {cuestionario.puntaje_total} pts
+                          </Box>
+                        )}
                       </Box>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         {cuestionario.Descripcion || 'Sin descripción'}
                       </Typography>
+                      {cuestionario.completado ? (
+                        <Box
+                          sx={{
+                            bgcolor: '#e8f5e9',
+                            color: '#2e7d32',
+                            px: 2,
+                            py: 1,
+                            borderRadius: 1,
+                            textAlign: 'center',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ✓ Completado
+                        </Box>
+                      ) : (
+                        <Box
+                          sx={{
+                            bgcolor: '#fff3e0',
+                            color: '#e65100',
+                            px: 2,
+                            py: 1,
+                            borderRadius: 1,
+                            textAlign: 'center',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          Pendiente
+                        </Box>
+                      )}
                     </CardContent>
                   </CardActionArea>
                 </Card>

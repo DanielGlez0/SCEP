@@ -27,8 +27,10 @@ import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CakeIcon from '@mui/icons-material/Cake';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import QuizIcon from '@mui/icons-material/Quiz';
 import { useNavigate } from 'react-router-dom';
 import BotonInicio from './BotonInicio';
+import AsignarCuestionarios from './AsignarCuestionarios';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const DatosPaciente = () => {
@@ -46,6 +48,8 @@ const DatosPaciente = () => {
   });
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
+  const [dialogoAsignar, setDialogoAsignar] = useState(false);
+  const [pacienteParaAsignar, setPacienteParaAsignar] = useState(null);
 
   // Obtener la lista de usuarios desde la base de datos al cargar el componente
   useEffect(() => {
@@ -257,6 +261,27 @@ const DatosPaciente = () => {
 
                     <Button
                       variant="outlined"
+                      startIcon={<QuizIcon />}
+                      fullWidth
+                      onClick={() => {
+                        setPacienteParaAsignar(usuario);
+                        setDialogoAsignar(true);
+                      }}
+                      sx={{
+                        mb: 1,
+                        borderColor: '#4caf50',
+                        color: '#4caf50',
+                        '&:hover': {
+                          borderColor: '#388e3c',
+                          backgroundColor: 'rgba(76, 175, 80, 0.1)'
+                        }
+                      }}
+                    >
+                      Asignar Cuestionarios
+                    </Button>
+
+                    <Button
+                      variant="outlined"
                       startIcon={<AssignmentIcon />}
                       fullWidth
                       onClick={() => navigate(`/reportes-paciente/${usuario.id}`, { state: { paciente: usuario } })}
@@ -279,7 +304,6 @@ const DatosPaciente = () => {
                       fullWidth
                       onClick={() => abrirDialogoEditar(usuario)}
                       sx={{
-                        mt: 2,
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         '&:hover': {
                           background: 'linear-gradient(135deg, #5568d3 0%, #63408a 100%)',
@@ -362,6 +386,20 @@ const DatosPaciente = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Diálogo Asignar Cuestionarios */}
+      <AsignarCuestionarios
+        open={dialogoAsignar}
+        onClose={() => {
+          setDialogoAsignar(false);
+          setPacienteParaAsignar(null);
+        }}
+        paciente={pacienteParaAsignar}
+        onSuccess={() => {
+          setExito('Cuestionarios asignados correctamente');
+          setTimeout(() => setExito(null), 3000);
+        }}
+      />
     </Box>
   );
 };

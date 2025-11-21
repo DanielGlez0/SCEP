@@ -43,7 +43,12 @@ const GestionPreguntas = () => {
   const [preguntaActual, setPreguntaActual] = useState({
     id: null,
     texto: '',
-    opciones: ['', '', '', ''],
+    opciones: [
+      { texto: '', valor: 0 },
+      { texto: '', valor: 1 },
+      { texto: '', valor: 2 },
+      { texto: '', valor: 3 }
+    ],
   });
   const [confirmDelete, setConfirmDelete] = useState(null);
 
@@ -95,7 +100,12 @@ const GestionPreguntas = () => {
     setPreguntaActual({
       id: null,
       texto: '',
-      opciones: ['', '', '', ''],
+      opciones: [
+        { texto: '', valor: 0 },
+        { texto: '', valor: 1 },
+        { texto: '', valor: 2 },
+        { texto: '', valor: 3 }
+      ],
     });
     setModoEdicion(false);
     setDialogoAbierto(true);
@@ -103,10 +113,28 @@ const GestionPreguntas = () => {
 
   // Abrir diálogo para editar
   const abrirDialogoEditar = (pregunta) => {
+    // Si las opciones son strings, convertirlas al nuevo formato
+    let opcionesFormateadas = [];
+    if (Array.isArray(pregunta.opciones)) {
+      opcionesFormateadas = pregunta.opciones.map((opcion, index) => {
+        if (typeof opcion === 'string') {
+          return { texto: opcion, valor: index };
+        }
+        return opcion;
+      });
+    } else {
+      opcionesFormateadas = [
+        { texto: '', valor: 0 },
+        { texto: '', valor: 1 },
+        { texto: '', valor: 2 },
+        { texto: '', valor: 3 }
+      ];
+    }
+
     setPreguntaActual({
       id: pregunta.id,
       texto: pregunta.texto,
-      opciones: Array.isArray(pregunta.opciones) ? pregunta.opciones : ['', '', '', ''],
+      opciones: opcionesFormateadas,
     });
     setModoEdicion(true);
     setDialogoAbierto(true);
@@ -115,22 +143,39 @@ const GestionPreguntas = () => {
   // Cerrar diálogo
   const cerrarDialogo = () => {
     setDialogoAbierto(false);
-    setPreguntaActual({ id: null, texto: '', opciones: ['', '', '', ''] });
+    setPreguntaActual({ 
+      id: null, 
+      texto: '', 
+      opciones: [
+        { texto: '', valor: 0 },
+        { texto: '', valor: 1 },
+        { texto: '', valor: 2 },
+        { texto: '', valor: 3 }
+      ] 
+    });
     setError('');
   };
 
-  // Actualizar opción
-  const actualizarOpcion = (index, valor) => {
+  // Actualizar texto de opción
+  const actualizarOpcionTexto = (index, texto) => {
     const nuevasOpciones = [...preguntaActual.opciones];
-    nuevasOpciones[index] = valor;
+    nuevasOpciones[index] = { ...nuevasOpciones[index], texto };
+    setPreguntaActual({ ...preguntaActual, opciones: nuevasOpciones });
+  };
+
+  // Actualizar valor de opción
+  const actualizarOpcionValor = (index, valor) => {
+    const nuevasOpciones = [...preguntaActual.opciones];
+    nuevasOpciones[index] = { ...nuevasOpciones[index], valor: parseInt(valor) };
     setPreguntaActual({ ...preguntaActual, opciones: nuevasOpciones });
   };
 
   // Añadir opción
   const añadirOpcion = () => {
+    const nuevoValor = preguntaActual.opciones.length;
     setPreguntaActual({
       ...preguntaActual,
-      opciones: [...preguntaActual.opciones, ''],
+      opciones: [...preguntaActual.opciones, { texto: '', valor: nuevoValor }],
     });
   };
 
@@ -147,7 +192,7 @@ const GestionPreguntas = () => {
       return;
     }
 
-    const opcionesFiltradas = preguntaActual.opciones.filter((op) => op.trim() !== '');
+    const opcionesFiltradas = preguntaActual.opciones.filter((op) => op.texto.trim() !== '');
     if (opcionesFiltradas.length === 0) {
       setError('Debe haber al menos una opción.');
       return;
@@ -350,20 +395,24 @@ const GestionPreguntas = () => {
                     secondary={
                       <Box sx={{ mt: 1 }}>
                         {Array.isArray(pregunta.opciones) &&
-                          pregunta.opciones.map((opcion, i) => (
-                            <Chip
-                              key={i}
-                              label={opcion}
-                              size="small"
-                              sx={{
-                                mr: 0.5,
-                                mb: 0.5,
-                                bgcolor: '#f093fb',
-                                color: 'white',
-                                fontWeight: 'medium',
-                              }}
-                            />
-                          ))}
+                          pregunta.opciones.map((opcion, i) => {
+                            const textoOpcion = typeof opcion === 'string' ? opcion : opcion.texto;
+                            const valorOpcion = typeof opcion === 'object' && opcion.valor !== undefined ? opcion.valor : i;
+                            return (
+                              <Chip
+                                key={i}
+                                label={`${textoOpcion} (${valorOpcion})`}
+                                size="small"
+                                sx={{
+                                  mr: 0.5,
+                                  mb: 0.5,
+                                  bgcolor: '#f093fb',
+                                  color: 'white',
+                                  fontWeight: 'medium',
+                                }}
+                              />
+                            );
+                          })}
                       </Box>
                     }
                   />
@@ -396,23 +445,32 @@ const GestionPreguntas = () => {
             sx={{ mb: 3 }}
           />
           <Typography variant="subtitle2" gutterBottom>
-            Opciones de respuesta
+            Opciones de respuesta (con valor 0-3)
           </Typography>
           {preguntaActual.opciones.map((opcion, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
               <TextField
                 fullWidth
                 size="small"
-                placeholder={`Opción ${index + 1}`}
-                value={opcion}
-                onChange={(e) => actualizarOpcion(index, e.target.value)}
+                label="Texto de la opción"
+                placeholder={`Ej: Nunca, A veces, Frecuentemente, Siempre`}
+                value={opcion.texto}
+                onChange={(e) => actualizarOpcionTexto(index, e.target.value)}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Valor"
+                inputProps={{ min: 0, max: 3, step: 1 }}
+                value={opcion.valor}
+                onChange={(e) => actualizarOpcionValor(index, e.target.value)}
+                sx={{ width: 100 }}
               />
               {preguntaActual.opciones.length > 1 && (
                 <IconButton
                   size="small"
                   color="error"
                   onClick={() => eliminarOpcion(index)}
-                  sx={{ ml: 1 }}
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
