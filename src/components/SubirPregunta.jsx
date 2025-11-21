@@ -11,6 +11,7 @@ import {
   Alert,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import BotonInicio from './BotonInicio';
 
 const SubirPregunta = () => {
   const [texto, setTexto] = useState("");
@@ -65,9 +66,12 @@ const SubirPregunta = () => {
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Subir nueva pregunta
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h5" gutterBottom>
+          Subir nueva pregunta
+        </Typography>
+        <BotonInicio />
+      </Box>
 
       {mensaje && (
         <Alert severity={error ? "error" : "success"} sx={{ mb: 2 }}>

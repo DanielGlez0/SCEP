@@ -11,6 +11,7 @@ import {
   Divider,
 } from "@mui/material";
 import { supabase } from "../supabaseClient";
+import BotonInicio from './BotonInicio';
 
 const Agenda = () => {
   const [nombre, setNombre] = useState("");
@@ -82,9 +83,12 @@ const Agenda = () => {
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Agendar nueva cita
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h5" gutterBottom>
+            Agendar nueva cita
+          </Typography>
+          <BotonInicio />
+        </Box>
         <form onSubmit={handleSubmit}>
           <TextField
             label="Nombre del paciente"

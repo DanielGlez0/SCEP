@@ -9,6 +9,7 @@ import {
   Alert,
   Box,
 } from "@mui/material";
+import BotonInicio from './BotonInicio';
 
 const SubirReporte = () => {
   const [pacientes, setPacientes] = useState([]);
@@ -65,9 +66,12 @@ const SubirReporte = () => {
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Subir Reporte
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h4" gutterBottom>
+          Subir Reporte
+        </Typography>
+        <BotonInicio />
+      </Box>
 
       {mensaje && (
         <Alert severity={error ? "error" : "success"} sx={{ mb: 2 }}>

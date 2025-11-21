@@ -3,10 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import './index.css';
 import ProtectedRoute from "./ProtectedRoute";
 import Cuestionario from "./components/Cuestionarios.jsx";
+import GestionCuestionarios from "./components/GestionCuestionarios.jsx";
+import GestionPreguntas from "./components/GestionPreguntas.jsx";
+import CuestionariosDisponibles from "./components/CuestionariosDisponibles.jsx";
 import Login from "./components/Login.jsx";
 import { supabase } from "./supabaseClient";
 import RegistroPaciente from "./components/RegistroPaciente.jsx";
 import DatosPaciente from "./components/DatosPaciente.jsx";
+import ReportesPaciente from "./components/ReportesPaciente.jsx";
 import Menu from './components/Menu';
 import SubirPregunta from './components/SubirPregunta';
 import SubirReporte from "./components/SubirReporte";
@@ -83,6 +87,16 @@ const App = () => {
           }
         />
 
+        {/* Ruta protegida: Reportes del paciente */}
+        <Route
+          path="/reportes-paciente/:id"
+          element={
+            <ProtectedRoute user={usuario}>
+              <ReportesPaciente />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Ruta protegida: Menú */}
         <Route
           path="/menu"
@@ -103,9 +117,39 @@ const App = () => {
           }
         />
 
-        {/* Ruta protegida: Cuestionario */}
+        {/* Ruta protegida: Gestión de Cuestionarios (Psicólogos) */}
         <Route
-          path="/cuestionario"
+          path="/gestion-cuestionarios"
+          element={
+            <ProtectedRoute user={usuario}>
+              <GestionCuestionarios />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Ruta protegida: Cuestionarios Disponibles (Pacientes) */}
+        <Route
+          path="/cuestionarios-disponibles"
+          element={
+            <ProtectedRoute user={usuario}>
+              <CuestionariosDisponibles />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Ruta protegida: Gestión de Preguntas de un Cuestionario */}
+        <Route
+          path="/gestion-cuestionarios/:id/preguntas"
+          element={
+            <ProtectedRoute user={usuario}>
+              <GestionPreguntas />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Ruta protegida: Responder Cuestionario específico (Pacientes) */}
+        <Route
+          path="/responder-cuestionario/:id"
           element={
             <ProtectedRoute user={usuario}>
               <Cuestionario />

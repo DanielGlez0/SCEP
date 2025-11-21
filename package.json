@@ -16,6 +16,7 @@
     "@mui/material": "^7.1.0",
     "@prisma/client": "^6.7.0",
     "@supabase/supabase-js": "^2.49.4",
+    "node-fetch": "^3.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.6.0"

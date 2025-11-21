@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient'; // Ajusta la ruta según tu estructura
+import { Box } from '@mui/material';
+import BotonInicio from './BotonInicio';
 
 const Cuestionario = () => {
   const [preguntas, setPreguntas] = useState([]);
@@ -88,7 +90,10 @@ const Cuestionario = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-7xl font-bold mb-4">Cuestionarios</h1>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <h1 className="text-7xl font-bold">Cuestionarios</h1>
+        <BotonInicio />
+      </Box>
       {preguntas.map((pregunta) => (
         <div key={pregunta.id} className="mb-6">
           <h2 className="text-2xl font-semibold">{pregunta.texto}</h2>
