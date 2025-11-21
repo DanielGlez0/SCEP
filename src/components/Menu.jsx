@@ -46,25 +46,49 @@ const Menu = () => {
     { label: 'Perfil', path: '/perfil', icon: PersonIcon },
     { label: 'Agenda', path: '/agenda', icon: CalendarMonthIcon },
     { label: 'Cuestionarios', path: '/gestion-cuestionarios', icon: QuizIcon },
-    { label: 'Subir Pregunta', path: '/subir-pregunta', icon: AddCircleIcon },
     { label: 'Subir Reporte', path: '/subir-reporte', icon: AssignmentIcon },
   ];
+
+  const [psicologoInfo, setPsicologoInfo] = useState(null);
+  const [citasHoy, setCitasHoy] = useState([]);
+  const [cuestionarios, setCuestionarios] = useState([]);
+  const [reportes, setReportes] = useState([]);
 
   const handleMenuClick = (item) => {
     setPanelAbierto(item);
     
-    // Si es el módulo de Pacientes, cargar las consultas
-    if (item.path === '/datos-paciente') {
-      cargarConsultas();
+    // Cargar datos según el módulo seleccionado
+    switch (item.path) {
+      case '/datos-paciente':
+        cargarConsultas();
+        break;
+      case '/perfil':
+        cargarInfoPsicologo();
+        break;
+      case '/agenda':
+        cargarCitasHoy();
+        break;
+      case '/gestion-cuestionarios':
+        cargarCuestionarios();
+        break;
+      case '/subir-reporte':
+        cargarReportes();
+        break;
+      default:
+        break;
     }
   };
 
   const cargarConsultas = async () => {
     setCargando(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('citas')
         .select('*')
+        .eq('psicologo_id', user.id)
         .order('hora', { ascending: false })
         .limit(5);
       
@@ -77,6 +101,142 @@ const Menu = () => {
     } catch (err) {
       console.error('Error inesperado:', err);
       setConsultas([]);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const cargarInfoPsicologo = async () => {
+    setCargando(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Obtener datos del usuario
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!userError) {
+        // Obtener estadísticas
+        const { data: pacientes } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('rol', 'Paciente')
+          .eq('activo', true);
+
+        const { data: citas } = await supabase
+          .from('citas')
+          .select('*')
+          .eq('psicologo_id', user.id);
+
+        const citasVistas = citas?.filter(c => c.vista).length || 0;
+        const citasCanceladas = citas?.filter(c => c.cancelada).length || 0;
+
+        setPsicologoInfo({
+          nombre: userData?.nombre || 'Psicólogo',
+          email: userData?.email || user.email,
+          pacientes: pacientes?.length || 0,
+          totalCitas: citas?.length || 0,
+          citasVistas,
+          citasCanceladas
+        });
+      }
+    } catch (err) {
+      console.error('Error cargando info psicólogo:', err);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const cargarCitasHoy = async () => {
+    setCargando(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const hoy = new Date();
+      const inicioDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0);
+      const finDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59);
+
+      const { data, error } = await supabase
+        .from('citas')
+        .select('*')
+        .eq('psicologo_id', user.id)
+        .gte('hora', inicioDia.toISOString())
+        .lte('hora', finDia.toISOString())
+        .order('hora', { ascending: true });
+
+      if (!error) {
+        setCitasHoy(data || []);
+      }
+    } catch (err) {
+      console.error('Error cargando citas de hoy:', err);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const cargarCuestionarios = async () => {
+    setCargando(true);
+    try {
+      const { data, error } = await supabase
+        .from('cuestionarios')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        console.error('Error en Supabase al cargar cuestionarios:', error);
+      } else {
+        setCuestionarios(data || []);
+      }
+    } catch (err) {
+      console.error('Error cargando cuestionarios:', err);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const cargarReportes = async () => {
+    setCargando(true);
+    try {
+      // Cargar reportes
+      const { data: reportesData, error: reportesError } = await supabase
+        .from('reportes')
+        .select('*')
+        .order('creado_en', { ascending: false })
+        .limit(8);
+
+      if (reportesError) {
+        console.error('Error en Supabase al cargar reportes:', reportesError);
+        return;
+      }
+
+      // Cargar nombres de pacientes para cada reporte
+      if (reportesData && reportesData.length > 0) {
+        const pacientesIds = [...new Set(reportesData.map(r => r.paciente_id))];
+        const { data: pacientesData, error: pacientesError } = await supabase
+          .from('usuarios')
+          .select('id, nombre')
+          .in('id', pacientesIds);
+
+        if (!pacientesError && pacientesData) {
+          // Combinar reportes con nombres de pacientes
+          const reportesConNombres = reportesData.map(reporte => ({
+            ...reporte,
+            paciente_nombre: pacientesData.find(p => p.id === reporte.paciente_id)?.nombre || 'Desconocido'
+          }));
+          setReportes(reportesConNombres);
+        } else {
+          setReportes(reportesData);
+        }
+      } else {
+        setReportes([]);
+      }
+    } catch (err) {
+      console.error('Error cargando reportes:', err);
     } finally {
       setCargando(false);
     }
@@ -307,7 +467,8 @@ const Menu = () => {
 
             {/* Contenido del panel */}
             <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
-              {panelAbierto.path === '/datos-paciente' ? (
+              {/* Panel de Pacientes */}
+              {panelAbierto.path === '/datos-paciente' && (
                 <>
                   <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
                     Últimas Consultas
@@ -322,7 +483,7 @@ const Menu = () => {
                   ) : consultas.length > 0 ? (
                     <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
                       {consultas.map((consulta, index) => (
-                        <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                        <ListItem key={index} disablePadding sx={{ mb: 1, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}>
                           <ListItemText
                             primary={consulta.nombre}
                             secondary={
@@ -332,7 +493,7 @@ const Menu = () => {
                                 </Typography>
                                 <br />
                                 <Typography component="span" variant="caption" color="text.secondary">
-                                  {new Date(consulta.hora).toLocaleString()}
+                                  {new Date(consulta.hora).toLocaleString('es-ES')}
                                 </Typography>
                               </>
                             }
@@ -346,24 +507,251 @@ const Menu = () => {
                     </Typography>
                   )}
                 </>
-              ) : (
+              )}
+
+              {/* Panel de Perfil */}
+              {panelAbierto.path === '/perfil' && (
                 <>
-                  <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                    Contenido de: <strong>{panelAbierto.label}</strong>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                    Información General
                   </Typography>
                   
-                  <Box
-                    sx={{
-                      p: 2,
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: 2,
-                      mb: 3,
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      Aquí irá el contenido específico del módulo de {panelAbierto.label.toLowerCase()}.
+                  {cargando ? (
+                    <>
+                      <Skeleton variant="rectangular" height={60} sx={{ mb: 2, borderRadius: 1 }} />
+                      <Skeleton variant="rectangular" height={60} sx={{ mb: 2, borderRadius: 1 }} />
+                      <Skeleton variant="rectangular" height={60} sx={{ borderRadius: 1 }} />
+                    </>
+                  ) : psicologoInfo ? (
+                    <>
+                      <Box sx={{ mb: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Nombre
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {psicologoInfo.nombre}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ mb: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Email
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {psicologoInfo.email}
+                        </Typography>
+                      </Box>
+
+                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 3, mb: 2 }}>
+                        Estadísticas
+                      </Typography>
+
+                      <Box sx={{ mb: 1.5, p: 2, bgcolor: '#e3f2fd', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Pacientes Activos
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" color="primary">
+                          {psicologoInfo.pacientes}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ mb: 1.5, p: 2, bgcolor: '#e8f5e9', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Sesiones Vistas
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" color="success.main">
+                          {psicologoInfo.citasVistas}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ mb: 1.5, p: 2, bgcolor: '#ffebee', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Sesiones Canceladas
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" color="error.main">
+                          {psicologoInfo.citasCanceladas}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ p: 2, bgcolor: '#fff3e0', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Total de Citas
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" color="warning.main">
+                          {psicologoInfo.totalCitas}
+                        </Typography>
+                      </Box>
+                    </>
+                  ) : null}
+                </>
+              )}
+
+              {/* Panel de Agenda */}
+              {panelAbierto.path === '/agenda' && (
+                <>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                    Citas de Hoy
+                  </Typography>
+                  
+                  {cargando ? (
+                    <>
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                    </>
+                  ) : citasHoy.length > 0 ? (
+                    <List sx={{ width: '100%' }}>
+                      {citasHoy.map((cita, index) => (
+                        <ListItem 
+                          key={index} 
+                          disablePadding 
+                          sx={{ 
+                            mb: 1.5, 
+                            p: 1.5, 
+                            bgcolor: cita.vista ? '#e8f5e9' : cita.cancelada ? '#ffebee' : '#e3f2fd', 
+                            borderRadius: 1,
+                            borderLeft: `4px solid ${cita.vista ? '#4caf50' : cita.cancelada ? '#f44336' : '#2196f3'}`
+                          }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body1" fontWeight="bold">
+                                  {cita.nombre}
+                                </Typography>
+                                <Typography variant="caption" fontWeight="bold" color="primary">
+                                  {new Date(cita.hora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </Typography>
+                              </Box>
+                            }
+                            secondary={
+                              <>
+                                <Typography component="span" variant="body2" color="text.secondary">
+                                  {cita.telefono}
+                                </Typography>
+                                <br />
+                                {cita.vista && (
+                                  <Typography component="span" variant="caption" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                                    ✓ Vista
+                                  </Typography>
+                                )}
+                                {cita.cancelada && (
+                                  <Typography component="span" variant="caption" sx={{ color: '#f44336', fontWeight: 'bold' }}>
+                                    ✗ Cancelada
+                                  </Typography>
+                                )}
+                              </>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Typography color="text.secondary" variant="body2">
+                      No hay citas programadas para hoy.
                     </Typography>
-                  </Box>
+                  )}
+                </>
+              )}
+
+              {/* Panel de Cuestionarios */}
+              {panelAbierto.path === '/gestion-cuestionarios' && (
+                <>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                    Cuestionarios Disponibles
+                  </Typography>
+                  
+                  {cargando ? (
+                    <>
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                    </>
+                  ) : cuestionarios.length > 0 ? (
+                    <List sx={{ width: '100%' }}>
+                      {cuestionarios.map((cuestionario, index) => (
+                        <ListItem 
+                          key={index} 
+                          disablePadding 
+                          sx={{ mb: 1, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Typography variant="body1" fontWeight="bold">
+                                {cuestionario.Titulo}
+                              </Typography>
+                            }
+                            secondary={
+                              cuestionario.Descripcion && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {cuestionario.Descripcion}
+                                </Typography>
+                              )
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Typography color="text.secondary" variant="body2">
+                      No hay cuestionarios disponibles.
+                    </Typography>
+                  )}
+                </>
+              )}
+
+              {/* Panel de Reportes */}
+              {panelAbierto.path === '/subir-reporte' && (
+                <>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                    Últimos Reportes
+                  </Typography>
+                  
+                  {cargando ? (
+                    <>
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                      <Skeleton variant="text" sx={{ mb: 1 }} />
+                    </>
+                  ) : reportes.length > 0 ? (
+                    <List sx={{ width: '100%' }}>
+                      {reportes.map((reporte, index) => (
+                        <ListItem 
+                          key={index} 
+                          disablePadding 
+                          sx={{ mb: 1.5, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Typography variant="body1" fontWeight="bold">
+                                {reporte.titulo}
+                              </Typography>
+                            }
+                            secondary={
+                              <>
+                                <Typography component="span" variant="body2" color="primary" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                  Paciente: {reporte.paciente_nombre || 'Desconocido'}
+                                </Typography>
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  {new Date(reporte.creado_en).toLocaleDateString('es-ES', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </Typography>
+                              </>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Typography color="text.secondary" variant="body2">
+                      No hay reportes registrados.
+                    </Typography>
+                  )}
                 </>
               )}
             </Box>

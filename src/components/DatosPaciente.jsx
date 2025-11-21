@@ -28,6 +28,10 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import CakeIcon from '@mui/icons-material/Cake';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import QuizIcon from '@mui/icons-material/Quiz';
+import EventIcon from '@mui/icons-material/Event';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useNavigate } from 'react-router-dom';
 import BotonInicio from './BotonInicio';
 import AsignarCuestionarios from './AsignarCuestionarios';
@@ -50,6 +54,9 @@ const DatosPaciente = () => {
   const [exito, setExito] = useState(null);
   const [dialogoAsignar, setDialogoAsignar] = useState(false);
   const [pacienteParaAsignar, setPacienteParaAsignar] = useState(null);
+  const [dialogoConsultas, setDialogoConsultas] = useState(false);
+  const [citasPaciente, setCitasPaciente] = useState([]);
+  const [pacienteConsultas, setPacienteConsultas] = useState(null);
 
   // Obtener la lista de usuarios desde la base de datos al cargar el componente
   useEffect(() => {
@@ -93,6 +100,27 @@ const DatosPaciente = () => {
       activo: usuario.activo !== false
     });
     setDialogoEditar(true);
+  };
+
+  const abrirDialogoConsultas = async (usuario) => {
+    setPacienteConsultas(usuario);
+    await cargarCitasPaciente(usuario.telefono);
+    setDialogoConsultas(true);
+  };
+
+  const cargarCitasPaciente = async (telefono) => {
+    const { data, error } = await supabase
+      .from("citas")
+      .select("*")
+      .eq("telefono", telefono)
+      .order("hora", { ascending: false });
+
+    if (error) {
+      console.error("Error cargando citas:", error);
+      setCitasPaciente([]);
+    } else {
+      setCitasPaciente(data || []);
+    }
   };
 
   const cerrarDialogo = () => {
@@ -205,7 +233,7 @@ const DatosPaciente = () => {
         </Box>
 
         {/* Grid de pacientes */}
-        <Grid container spacing={3}>
+        <Grid container spacing={3} justifyContent="center">
           {usuariosFiltrados.length > 0 ? (
             usuariosFiltrados.map((usuario) => (
               <Grid item xs={12} sm={6} md={4} key={usuario.id}>
@@ -217,14 +245,14 @@ const DatosPaciente = () => {
                     transition: 'all 0.3s ease',
                     borderLeft: `4px solid ${usuario.activo !== false ? '#4caf50' : '#f44336'}`,
                     '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: 6
+                      transform: 'translateY(-3px)',
+                      boxShadow: 4
                     }
                   }}
                 >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <PersonIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <PersonIcon sx={{ fontSize: 28, color: 'primary.main' }} />
                       <Chip
                         label={usuario.activo !== false ? 'Activo' : 'Inactivo'}
                         color={usuario.activo !== false ? 'success' : 'error'}
@@ -232,28 +260,28 @@ const DatosPaciente = () => {
                       />
                     </Box>
 
-                    <Typography variant="h6" fontWeight="bold" gutterBottom color="primary">
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary" sx={{ mb: 0.5 }}>
                       {usuario.nombre}
                     </Typography>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <EmailIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                      <EmailIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                         {usuario.email}
                       </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <CakeIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                      <CakeIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                         {usuario.edad} años
                       </Typography>
                     </Box>
 
                     {usuario.telefono && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <PhoneIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <PhoneIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                           {usuario.telefono}
                         </Typography>
                       </Box>
@@ -261,14 +289,17 @@ const DatosPaciente = () => {
 
                     <Button
                       variant="outlined"
-                      startIcon={<QuizIcon />}
+                      startIcon={<QuizIcon sx={{ fontSize: 16 }} />}
                       fullWidth
+                      size="small"
                       onClick={() => {
                         setPacienteParaAsignar(usuario);
                         setDialogoAsignar(true);
                       }}
                       sx={{
-                        mb: 1,
+                        mb: 0.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
                         borderColor: '#4caf50',
                         color: '#4caf50',
                         '&:hover': {
@@ -277,16 +308,19 @@ const DatosPaciente = () => {
                         }
                       }}
                     >
-                      Asignar Cuestionarios
+                      Cuestionarios
                     </Button>
 
                     <Button
                       variant="outlined"
-                      startIcon={<AssignmentIcon />}
+                      startIcon={<AssignmentIcon sx={{ fontSize: 16 }} />}
                       fullWidth
+                      size="small"
                       onClick={() => navigate(`/reportes-paciente/${usuario.id}`, { state: { paciente: usuario } })}
                       sx={{
-                        mb: 1,
+                        mb: 0.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
                         borderColor: '#667eea',
                         color: '#667eea',
                         '&:hover': {
@@ -295,15 +329,39 @@ const DatosPaciente = () => {
                         }
                       }}
                     >
-                      Ver Reportes
+                      Reportes
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      startIcon={<EventIcon sx={{ fontSize: 16 }} />}
+                      fullWidth
+                      size="small"
+                      onClick={() => abrirDialogoConsultas(usuario)}
+                      sx={{
+                        mb: 0.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
+                        borderColor: '#ff9800',
+                        color: '#ff9800',
+                        '&:hover': {
+                          borderColor: '#f57c00',
+                          backgroundColor: 'rgba(255, 152, 0, 0.1)'
+                        }
+                      }}
+                    >
+                      Consultas
                     </Button>
 
                     <Button
                       variant="contained"
-                      startIcon={<EditIcon />}
+                      startIcon={<EditIcon sx={{ fontSize: 16 }} />}
                       fullWidth
+                      size="small"
                       onClick={() => abrirDialogoEditar(usuario)}
                       sx={{
+                        py: 0.5,
+                        fontSize: '0.75rem',
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         '&:hover': {
                           background: 'linear-gradient(135deg, #5568d3 0%, #63408a 100%)',
@@ -400,6 +458,133 @@ const DatosPaciente = () => {
           setTimeout(() => setExito(null), 3000);
         }}
       />
+
+      {/* Diálogo de Consultas */}
+      <Dialog 
+        open={dialogoConsultas} 
+        onClose={() => setDialogoConsultas(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle 
+          sx={{ 
+            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <EventIcon />
+          Historial de Consultas - {pacienteConsultas?.nombre}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {citasPaciente.length === 0 ? (
+            <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'rgba(255, 152, 0, 0.05)' }}>
+              <EventIcon sx={{ fontSize: 60, color: '#ff9800', opacity: 0.5, mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                No hay consultas registradas
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Este paciente no tiene citas agendadas
+              </Typography>
+            </Paper>
+          ) : (
+            <Grid container spacing={2}>
+              {citasPaciente.map((cita) => (
+                <Grid item xs={12} sm={6} md={4} key={cita.id}>
+                  <Card 
+                    sx={{
+                      height: '100%',
+                      borderLeft: `4px solid ${
+                        cita.vista ? '#4caf50' : 
+                        cita.cancelada ? '#f44336' : 
+                        '#ff9800'
+                      }`,
+                      bgcolor: 'rgba(255, 255, 255, 0.95)',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: 4,
+                        transform: 'translateY(-3px)'
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                        <AccessTimeIcon sx={{ color: '#ff9800', fontSize: 18 }} />
+                        <Typography variant="body2" fontWeight="bold" color="primary">
+                          {new Date(cita.hora).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </Typography>
+                      </Box>
+                      
+                      <Typography variant="h6" fontWeight="bold" color="text.secondary" sx={{ mb: 1 }}>
+                        {new Date(cita.hora).toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {cita.vista && (
+                          <Chip
+                            icon={<CheckCircleIcon />}
+                            label="Vista"
+                            size="small"
+                            sx={{
+                              bgcolor: 'rgba(76, 175, 80, 0.15)',
+                              color: '#4caf50',
+                              fontWeight: 'bold'
+                            }}
+                          />
+                        )}
+                        {cita.cancelada && (
+                          <Chip
+                            icon={<CancelIcon />}
+                            label="Cancelada"
+                            size="small"
+                            sx={{
+                              bgcolor: 'rgba(244, 67, 54, 0.15)',
+                              color: '#f44336',
+                              fontWeight: 'bold'
+                            }}
+                          />
+                        )}
+                        {!cita.vista && !cita.cancelada && (
+                          <Chip
+                            icon={<AccessTimeIcon />}
+                            label={new Date(cita.hora) > new Date() ? "Pendiente" : "Sin confirmar"}
+                            size="small"
+                            sx={{
+                              bgcolor: 'rgba(255, 152, 0, 0.15)',
+                              color: '#ff9800',
+                              fontWeight: 'bold'
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => setDialogoConsultas(false)}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+            }}
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

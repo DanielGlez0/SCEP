@@ -12,7 +12,6 @@ import RegistroPaciente from "./components/RegistroPaciente.jsx";
 import DatosPaciente from "./components/DatosPaciente.jsx";
 import ReportesPaciente from "./components/ReportesPaciente.jsx";
 import Menu from './components/Menu';
-import SubirPregunta from './components/SubirPregunta';
 import SubirReporte from "./components/SubirReporte";
 import Agenda from "./components/Agenda";
 import Perfil from './components/Perfil';
@@ -103,16 +102,6 @@ const App = () => {
           element={
             <ProtectedRoute user={usuario}>
               <Menu />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Ruta protegida: Subir pregunta */}
-        <Route
-          path="/subir-pregunta"
-          element={
-            <ProtectedRoute user={usuario}>
-              <SubirPregunta />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Avatar,
   Box,
@@ -7,26 +7,200 @@ import {
   Grid,
   Typography,
   Paper,
-  LinearProgress
+  LinearProgress,
+  ToggleButton,
+  ToggleButtonGroup,
+  TextField,
+  Chip
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PersonIcon from '@mui/icons-material/Person';
+import EventIcon from '@mui/icons-material/Event';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import { supabase } from '../supabaseClient';
 import BotonInicio from './BotonInicio';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const PerfilPsicologo = () => {
-  // Datos de ejemplo para la gráfica
-  const semanasData = [
-    { semana: 'Semana 1', horas: 28 },
-    { semana: 'Semana 2', horas: 32 },
-    { semana: 'Semana 3', horas: 25 },
-    { semana: 'Semana 4', horas: 35 },
-    { semana: 'Esta semana', horas: 30 }
-  ];
+  const [userId, setUserId] = useState(null);
+  const [pacientesRegistrados, setPacientesRegistrados] = useState(0);
+  const [horasVistas, setHorasVistas] = useState(0);
+  const [horasPlanificadas, setHorasPlanificadas] = useState(0);
+  const [horasCanceladas, setHorasCanceladas] = useState(0);
+  const [vistaPromedio, setVistaPromedio] = useState('semanal'); // 'semanal' o 'mensual'
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [datosGrafica, setDatosGrafica] = useState([]);
+  const [citas, setCitas] = useState([]);
 
-  const maxHoras = Math.max(...semanasData.map(s => s.horas));
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  useEffect(() => {
+    if (citas.length > 0) {
+      calcularEstadisticas();
+      generarDatosGrafica();
+    }
+  }, [citas, vistaPromedio, fechaInicio, fechaFin]);
+
+  const cargarDatos = async () => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Error obteniendo usuario:', userError);
+      return;
+    }
+
+    setUserId(user.id);
+
+    // Cargar pacientes registrados
+    const { data: pacientes, error: pacientesError } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('rol', 'Paciente')
+      .eq('activo', true);
+
+    if (!pacientesError) {
+      setPacientesRegistrados(pacientes?.length || 0);
+    }
+
+    // Cargar todas las citas del psicólogo
+    const { data: citasData, error: citasError } = await supabase
+      .from('citas')
+      .select('*')
+      .eq('psicologo_id', user.id)
+      .order('hora', { ascending: true });
+
+    if (!citasError) {
+      setCitas(citasData || []);
+    }
+  };
+
+  const calcularEstadisticas = () => {
+    const ahora = new Date();
+    
+    // Filtrar por rango de fechas si están definidas
+    let citasFiltradas = citas;
+    if (fechaInicio && fechaFin) {
+      citasFiltradas = citas.filter(cita => {
+        const fechaCita = new Date(cita.hora);
+        return fechaCita >= new Date(fechaInicio) && fechaCita <= new Date(fechaFin);
+      });
+    }
+
+    // Horas vistas (asumiendo 1 hora por sesión)
+    const vistas = citasFiltradas.filter(c => c.vista).length;
+    setHorasVistas(vistas);
+
+    // Horas planificadas (todas las citas)
+    setHorasPlanificadas(citasFiltradas.length);
+
+    // Horas canceladas
+    const canceladas = citasFiltradas.filter(c => c.cancelada).length;
+    setHorasCanceladas(canceladas);
+  };
+
+  const generarDatosGrafica = () => {
+    const ahora = new Date();
+    let citasFiltradas = citas;
+
+    // Filtrar por rango de fechas
+    if (fechaInicio && fechaFin) {
+      citasFiltradas = citas.filter(cita => {
+        const fechaCita = new Date(cita.hora);
+        return fechaCita >= new Date(fechaInicio) && fechaCita <= new Date(fechaFin);
+      });
+    }
+
+    if (vistaPromedio === 'semanal') {
+      // Agrupar por semanas (últimas 8 semanas o rango personalizado)
+      const semanas = {};
+      
+      citasFiltradas.forEach(cita => {
+        const fechaCita = new Date(cita.hora);
+        const inicioSemana = new Date(fechaCita);
+        const dia = inicioSemana.getDay();
+        const diff = inicioSemana.getDate() - dia + (dia === 0 ? -6 : 1);
+        inicioSemana.setDate(diff);
+        inicioSemana.setHours(0, 0, 0, 0);
+        
+        const claveSemana = inicioSemana.toISOString().split('T')[0];
+        
+        if (!semanas[claveSemana]) {
+          semanas[claveSemana] = {
+            fecha: inicioSemana,
+            vistas: 0,
+            canceladas: 0
+          };
+        }
+        
+        if (cita.vista) {
+          semanas[claveSemana].vistas += 1;
+        }
+        if (cita.cancelada) {
+          semanas[claveSemana].canceladas += 1;
+        }
+      });
+
+      const datos = Object.entries(semanas)
+        .sort((a, b) => a[1].fecha - b[1].fecha)
+        .slice(-8)
+        .map(([_, data]) => ({
+          label: data.fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+          vistas: data.vistas,
+          canceladas: data.canceladas
+        }));
+
+      setDatosGrafica(datos);
+    } else {
+      // Agrupar por meses
+      const meses = {};
+      
+      citasFiltradas.forEach(cita => {
+        const fechaCita = new Date(cita.hora);
+        const claveMes = `${fechaCita.getFullYear()}-${fechaCita.getMonth() + 1}`;
+        
+        if (!meses[claveMes]) {
+          meses[claveMes] = {
+            fecha: new Date(fechaCita.getFullYear(), fechaCita.getMonth(), 1),
+            vistas: 0,
+            canceladas: 0
+          };
+        }
+        
+        if (cita.vista) {
+          meses[claveMes].vistas += 1;
+        }
+        if (cita.cancelada) {
+          meses[claveMes].canceladas += 1;
+        }
+      });
+
+      const datos = Object.entries(meses)
+        .sort((a, b) => a[1].fecha - b[1].fecha)
+        .slice(-6)
+        .map(([_, data]) => ({
+          label: data.fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }),
+          vistas: data.vistas,
+          canceladas: data.canceladas
+        }));
+
+      setDatosGrafica(datos);
+    }
+  };
+
+  const calcularPromedio = () => {
+    if (datosGrafica.length === 0) return 0;
+    const total = datosGrafica.reduce((sum, item) => sum + item.vistas, 0);
+    return (total / datosGrafica.length).toFixed(1);
+  };
+
+  const maxHoras = datosGrafica.length > 0 ? Math.max(...datosGrafica.map(d => Math.max(d.vistas, d.canceladas))) : 1;
 
   return (
     <Box
@@ -85,8 +259,8 @@ const PerfilPsicologo = () => {
 
         {/* Tarjetas de estadísticas */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {/* Pacientes Activos */}
-          <Grid item xs={12} md={4}>
+          {/* Pacientes Registrados */}
+          <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
                 height: '100%',
@@ -111,22 +285,22 @@ const PerfilPsicologo = () => {
                   >
                     <PeopleIcon sx={{ color: 'white', fontSize: 32 }} />
                   </Box>
-                  <Typography variant="h6" color="text.secondary">
-                    Pacientes Activos
+                  <Typography variant="body2" color="text.secondary">
+                    Pacientes
                   </Typography>
                 </Box>
                 <Typography variant="h2" fontWeight="bold" color="#4caf50">
-                  24
+                  {pacientesRegistrados}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  +3 desde el mes pasado
+                  Registrados
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Horas esta semana */}
-          <Grid item xs={12} md={4}>
+          {/* Horas Vistas */}
+          <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
                 height: '100%',
@@ -149,24 +323,24 @@ const PerfilPsicologo = () => {
                       mr: 2
                     }}
                   >
-                    <AccessTimeIcon sx={{ color: 'white', fontSize: 32 }} />
+                    <CheckCircleIcon sx={{ color: 'white', fontSize: 32 }} />
                   </Box>
-                  <Typography variant="h6" color="text.secondary">
-                    Horas Esta Semana
+                  <Typography variant="body2" color="text.secondary">
+                    Sesiones Vistas
                   </Typography>
                 </Box>
                 <Typography variant="h2" fontWeight="bold" color="#2196f3">
-                  30
+                  {horasVistas}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  De 40 horas planificadas
+                  Completadas
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Tendencia */}
-          <Grid item xs={12} md={4}>
+          {/* Horas Planificadas */}
+          <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
                 height: '100%',
@@ -189,24 +363,101 @@ const PerfilPsicologo = () => {
                       mr: 2
                     }}
                   >
-                    <TrendingUpIcon sx={{ color: 'white', fontSize: 32 }} />
+                    <EventIcon sx={{ color: 'white', fontSize: 32 }} />
                   </Box>
-                  <Typography variant="h6" color="text.secondary">
-                    Promedio Mensual
+                  <Typography variant="body2" color="text.secondary">
+                    Citas Totales
                   </Typography>
                 </Box>
                 <Typography variant="h2" fontWeight="bold" color="#ff9800">
-                  28.5
+                  {horasPlanificadas}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  horas por semana
+                  Planificadas
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Horas Canceladas */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                height: '100%',
+                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: 6
+                }
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box
+                    sx={{
+                      bgcolor: '#f44336',
+                      borderRadius: '50%',
+                      p: 1.5,
+                      mr: 2
+                    }}
+                  >
+                    <CancelIcon sx={{ color: 'white', fontSize: 32 }} />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Canceladas
+                  </Typography>
+                </Box>
+                <Typography variant="h2" fontWeight="bold" color="#f44336">
+                  {horasCanceladas}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Sesiones
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
 
-        {/* Gráfica de horas trabajadas */}
+        {/* Promedio */}
+        <Card
+          sx={{
+            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            p: 3,
+            mb: 3
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Typography variant="h5" fontWeight="bold">
+              Promedio de Sesiones
+            </Typography>
+            <ToggleButtonGroup
+              value={vistaPromedio}
+              exclusive
+              onChange={(e, newValue) => newValue && setVistaPromedio(newValue)}
+              size="small"
+            >
+              <ToggleButton value="semanal">
+                Semanal
+              </ToggleButton>
+              <ToggleButton value="mensual">
+                Mensual
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="h1" fontWeight="bold" color="primary">
+              {calcularPromedio()}
+            </Typography>
+            <Typography variant="h6" color="text.secondary">
+              horas por {vistaPromedio === 'semanal' ? 'semana' : 'mes'}
+            </Typography>
+          </Box>
+        </Card>
+
+        {/* Filtros de fecha y gráfica */}
         <Card
           sx={{
             bgcolor: 'rgba(255, 255, 255, 0.95)',
@@ -214,67 +465,236 @@ const PerfilPsicologo = () => {
             p: 3
           }}
         >
-          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
-            Horas Trabajadas - Últimas 5 Semanas
-          </Typography>
-          
-          <Box sx={{ mt: 3 }}>
-            {semanasData.map((item, index) => (
-              <Box key={index} sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body1" fontWeight="medium">
-                    {item.semana}
-                  </Typography>
-                  <Typography variant="body1" fontWeight="bold" color="primary">
-                    {item.horas} hrs
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(item.horas / maxHoras) * 100}
-                  sx={{
-                    height: 12,
-                    borderRadius: 2,
-                    bgcolor: 'rgba(102, 126, 234, 0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      borderRadius: 2,
-                      background: item.semana === 'Esta semana' 
-                        ? 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)'
-                        : 'linear-gradient(90deg, #93c5fd 0%, #bfdbfe 100%)'
-                    }
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+            <Typography variant="h5" fontWeight="bold">
+              Horas Trabajadas {vistaPromedio === 'semanal' ? 'por Semana' : 'por Mes'}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <CalendarMonthIcon sx={{ color: 'primary.main' }} />
+              <TextField
+                label="Desde"
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 150 }}
+              />
+              <TextField
+                label="Hasta"
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 150 }}
+              />
+              {(fechaInicio || fechaFin) && (
+                <Chip
+                  label="Limpiar filtros"
+                  onDelete={() => {
+                    setFechaInicio('');
+                    setFechaFin('');
                   }}
+                  color="primary"
+                  variant="outlined"
                 />
-              </Box>
-            ))}
+              )}
+            </Box>
           </Box>
+          
+          {datosGrafica.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <AccessTimeIcon sx={{ fontSize: 80, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                No hay datos para mostrar
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Ajusta el rango de fechas o espera a tener sesiones completadas
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ mt: 3 }}>
+              {/* Gráfica de columnas */}
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'flex-end', 
+                  justifyContent: 'space-around',
+                  height: 300,
+                  borderBottom: '2px solid #e0e0e0',
+                  borderLeft: '2px solid #e0e0e0',
+                  px: 2,
+                  py: 2,
+                  position: 'relative'
+                }}
+              >
+                {/* Líneas de referencia horizontales */}
+                {[...Array(5)].map((_, i) => {
+                  const valor = Math.round((maxHoras / 4) * (4 - i));
+                  return (
+                    <Box
+                      key={i}
+                      sx={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: `${(i * 25)}%`,
+                        borderTop: '1px dashed #e0e0e0',
+                        '&::before': {
+                          content: `"${valor}"`,
+                          position: 'absolute',
+                          left: -30,
+                          top: -10,
+                          fontSize: '0.75rem',
+                          color: 'text.secondary'
+                        }
+                      }}
+                    />
+                  );
+                })}
+
+                {datosGrafica.map((item, index) => (
+                  <Box 
+                    key={index}
+                    sx={{ 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      flex: 1,
+                      maxWidth: 120,
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  >
+                    {/* Columnas lado a lado */}
+                    <Box sx={{ display: 'flex', gap: 0.5, width: '90%', alignItems: 'flex-end' }}>
+                      {/* Columna Vistas */}
+                      <Box
+                        sx={{
+                          width: '50%',
+                          height: `${(item.vistas / maxHoras) * 100}%`,
+                          minHeight: item.vistas > 0 ? '20px' : '0px',
+                          background: 'linear-gradient(180deg, #2196f3 0%, #1976d2 100%)',
+                          borderRadius: '8px 8px 0 0',
+                          position: 'relative',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            transform: 'scaleY(1.05)',
+                            boxShadow: 3
+                          }
+                        }}
+                      >
+                        {/* Valor encima de la columna */}
+                        {item.vistas > 0 && (
+                          <Typography
+                            variant="caption"
+                            fontWeight="bold"
+                            sx={{
+                              position: 'absolute',
+                              top: -20,
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              color: '#2196f3',
+                              whiteSpace: 'nowrap',
+                              fontSize: '0.7rem'
+                            }}
+                          >
+                            {item.vistas}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Columna Canceladas */}
+                      <Box
+                        sx={{
+                          width: '50%',
+                          height: `${(item.canceladas / maxHoras) * 100}%`,
+                          minHeight: item.canceladas > 0 ? '20px' : '0px',
+                          background: 'linear-gradient(180deg, #f44336 0%, #d32f2f 100%)',
+                          borderRadius: '8px 8px 0 0',
+                          position: 'relative',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            transform: 'scaleY(1.05)',
+                            boxShadow: 3
+                          }
+                        }}
+                      >
+                        {/* Valor encima de la columna */}
+                        {item.canceladas > 0 && (
+                          <Typography
+                            variant="caption"
+                            fontWeight="bold"
+                            sx={{
+                              position: 'absolute',
+                              top: -20,
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              color: '#f44336',
+                              whiteSpace: 'nowrap',
+                              fontSize: '0.7rem'
+                            }}
+                          >
+                            {item.canceladas}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                    
+                    {/* Etiqueta */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        mt: 1,
+                        textAlign: 'center',
+                        fontSize: '0.7rem',
+                        color: 'text.secondary',
+                        transform: 'rotate(-45deg)',
+                        transformOrigin: 'center',
+                        width: '100%',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {item.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
 
           {/* Leyenda */}
-          <Box sx={{ display: 'flex', gap: 3, mt: 4, justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box
-                sx={{
-                  width: 20,
-                  height: 12,
-                  borderRadius: 1,
-                  background: 'linear-gradient(90deg, #93c5fd 0%, #bfdbfe 100%)',
-                  mr: 1
-                }}
-              />
-              <Typography variant="body2">Semanas anteriores</Typography>
+          {datosGrafica.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 3, mt: 4, justifyContent: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 12,
+                    borderRadius: 1,
+                    background: 'linear-gradient(90deg, #2196f3 0%, #1976d2 100%)',
+                    mr: 1
+                  }}
+                />
+                <Typography variant="body2">Sesiones Vistas</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 12,
+                    borderRadius: 1,
+                    background: 'linear-gradient(90deg, #f44336 0%, #d32f2f 100%)',
+                    mr: 1
+                  }}
+                />
+                <Typography variant="body2">Sesiones Canceladas</Typography>
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box
-                sx={{
-                  width: 20,
-                  height: 12,
-                  borderRadius: 1,
-                  background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                  mr: 1
-                }}
-              />
-              <Typography variant="body2">Semana actual</Typography>
-            </Box>
-          </Box>
+          )}
         </Card>
       </Box>
     </Box>

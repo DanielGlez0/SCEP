@@ -16,13 +16,16 @@ import {
   Alert,
   Chip,
   Grid,
-  Paper
+  Paper,
+  Divider
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import CloseIcon from '@mui/icons-material/Close';
 import BotonInicio from './BotonInicio';
 import fondoMenu from '../assets/fondo-menu.png';
 
@@ -36,9 +39,11 @@ const ReportesPaciente = () => {
   const [cargando, setCargando] = useState(true);
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [dialogoEliminar, setDialogoEliminar] = useState(false);
+  const [dialogoVer, setDialogoVer] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [reporteActual, setReporteActual] = useState({ id: null, titulo: '', descripcion: '' });
   const [reporteEliminar, setReporteEliminar] = useState(null);
+  const [reporteVer, setReporteVer] = useState(null);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
 
@@ -130,6 +135,16 @@ const ReportesPaciente = () => {
       setError('Error al guardar el reporte: ' + err.message);
       setTimeout(() => setError(null), 3000);
     }
+  };
+
+  const abrirDialogoVer = (reporte) => {
+    setReporteVer(reporte);
+    setDialogoVer(true);
+  };
+
+  const cerrarDialogoVer = () => {
+    setDialogoVer(false);
+    setReporteVer(null);
   };
 
   const abrirDialogoEliminar = (reporte) => {
@@ -426,6 +441,22 @@ const ReportesPaciente = () => {
                       >
                         <IconButton
                           size="small"
+                          onClick={() => abrirDialogoVer(reporte)}
+                          sx={{ 
+                            bgcolor: 'rgba(76, 175, 80, 0.1)',
+                            color: '#4caf50',
+                            '&:hover': { 
+                              bgcolor: '#4caf50',
+                              color: 'white',
+                              transform: 'scale(1.1)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
                           onClick={() => abrirDialogoEditar(reporte)}
                           sx={{ 
                             bgcolor: 'rgba(102, 126, 234, 0.1)',
@@ -678,6 +709,133 @@ const ReportesPaciente = () => {
             }}
           >
             Eliminar Reporte
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo Ver Reporte en Grande */}
+      <Dialog
+        open={dialogoVer}
+        onClose={cerrarDialogoVer}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            py: 3,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <AssignmentIcon sx={{ fontSize: 32 }} />
+            <Box>
+              <Typography variant="h5" fontWeight="bold">
+                {reporteVer?.titulo}
+              </Typography>
+              {reporteVer?.created_at && (
+                <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                  Fecha: {new Date(reporteVer.created_at).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <IconButton
+            onClick={cerrarDialogoVer}
+            sx={{
+              color: 'white',
+              bgcolor: 'rgba(255, 255, 255, 0.2)',
+              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.3)' }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 4, bgcolor: '#f5f5f5' }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 4,
+              bgcolor: 'white',
+              borderRadius: 2,
+              minHeight: '400px',
+              maxHeight: '600px',
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                bgcolor: '#667eea',
+                borderRadius: '4px'
+              }
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.8,
+                fontSize: '1.1rem',
+                color: 'text.primary',
+                fontFamily: 'monospace'
+              }}
+            >
+              {reporteVer?.descripcion}
+            </Typography>
+          </Paper>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3, bgcolor: 'white', borderTop: '2px solid #f0f0f0' }}>
+          <Button
+            onClick={() => {
+              cerrarDialogoVer();
+              abrirDialogoEditar(reporteVer);
+            }}
+            variant="outlined"
+            startIcon={<EditIcon />}
+            sx={{
+              borderColor: '#667eea',
+              color: '#667eea',
+              fontWeight: 'bold',
+              borderWidth: 2,
+              '&:hover': {
+                borderWidth: 2,
+                bgcolor: '#667eea',
+                color: 'white'
+              }
+            }}
+          >
+            Editar
+          </Button>
+          <Button
+            onClick={cerrarDialogoVer}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              fontWeight: 'bold',
+              px: 4,
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5568d3 0%, #63408a 100%)'
+              }
+            }}
+          >
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
