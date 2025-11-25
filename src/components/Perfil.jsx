@@ -22,10 +22,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { supabase } from '../supabaseClient';
+import { useTheme } from '../ThemeContext';
 import BotonInicio from './BotonInicio';
-import fondoMenu from '../assets/fondo-menu.png';
 
 const PerfilPsicologo = () => {
+  const theme = useTheme();
   const [userId, setUserId] = useState(null);
   const [pacientesRegistrados, setPacientesRegistrados] = useState(0);
   const [horasVistas, setHorasVistas] = useState(0);
@@ -206,10 +207,7 @@ const PerfilPsicologo = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: theme.fondoDegradado,
         py: 4
       }}
     >
@@ -220,7 +218,7 @@ const PerfilPsicologo = () => {
           sx={{
             p: 4,
             mb: 4,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: theme.fondoSecundario,
             color: 'white',
             position: 'relative',
             overflow: 'hidden'
@@ -244,9 +242,11 @@ const PerfilPsicologo = () => {
               </Avatar>
             </Grid>
             <Grid item xs>
-              <Typography variant="h3" fontWeight="bold" gutterBottom>
-                Dr. Juan Pérez
-              </Typography>
+              <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1, display: 'inline-block', mb: 1 }}>
+                <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ mb: 0 }}>
+                  Dr. Juan Pérez
+                </Typography>
+              </Box>
               <Typography variant="h6" sx={{ opacity: 0.9 }}>
                 Psicólogo Clínico • Especialista en Terapia Cognitivo-Conductual
               </Typography>
@@ -264,7 +264,7 @@ const PerfilPsicologo = () => {
             <Card
               sx={{
                 height: '100%',
-                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                bgcolor: theme.colorCard,
                 backdropFilter: 'blur(10px)',
                 transition: 'transform 0.3s ease',
                 '&:hover': {
@@ -304,7 +304,7 @@ const PerfilPsicologo = () => {
             <Card
               sx={{
                 height: '100%',
-                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                bgcolor: theme.colorCard,
                 backdropFilter: 'blur(10px)',
                 transition: 'transform 0.3s ease',
                 '&:hover': {
@@ -344,7 +344,7 @@ const PerfilPsicologo = () => {
             <Card
               sx={{
                 height: '100%',
-                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                bgcolor: theme.colorCard,
                 backdropFilter: 'blur(10px)',
                 transition: 'transform 0.3s ease',
                 '&:hover': {
@@ -384,7 +384,7 @@ const PerfilPsicologo = () => {
             <Card
               sx={{
                 height: '100%',
-                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                bgcolor: theme.colorCard,
                 backdropFilter: 'blur(10px)',
                 transition: 'transform 0.3s ease',
                 '&:hover': {
@@ -423,7 +423,7 @@ const PerfilPsicologo = () => {
         {/* Promedio */}
         <Card
           sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            bgcolor: theme.colorCard,
             backdropFilter: 'blur(10px)',
             p: 3,
             mb: 3
@@ -460,7 +460,7 @@ const PerfilPsicologo = () => {
         {/* Filtros de fecha y gráfica */}
         <Card
           sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            bgcolor: theme.colorCard,
             backdropFilter: 'blur(10px)',
             p: 3
           }}
@@ -702,3 +702,4 @@ const PerfilPsicologo = () => {
 };
 
 export default PerfilPsicologo;
+

@@ -15,6 +15,7 @@ import Menu from './components/Menu';
 import SubirReporte from "./components/SubirReporte";
 import Agenda from "./components/Agenda";
 import Perfil from './components/Perfil';
+import { ThemeProvider } from './ThemeContext';
 
 const App = () => {
   const [usuario, setUsuario] = useState(null);
@@ -41,8 +42,9 @@ const App = () => {
   if (cargando) return <div className="p-4">Cargando...</div>;
 
   return (
-    <Router>
-      <Routes>
+    <ThemeProvider>
+      <Router>
+        <Routes>
 
         {/* Ruta protegida: Perfil */}
         <Route
@@ -160,6 +162,7 @@ const App = () => {
         <Route path="*" element={<div>Página no encontrada</div>} />
       </Routes>
     </Router>
+    </ThemeProvider>
   );
 };
 

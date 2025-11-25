@@ -34,10 +34,11 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { supabase } from "../supabaseClient";
+import { useTheme } from '../ThemeContext';
 import BotonInicio from './BotonInicio';
-import fondoMenu from '../assets/fondo-menu.png';
 
 const Agenda = () => {
+  const theme = useTheme();
   const [pacientes, setPacientes] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [esNuevoPaciente, setEsNuevoPaciente] = useState(false);
@@ -298,10 +299,7 @@ const Agenda = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: theme.fondoDegradado,
         py: 4
       }}
     >
@@ -310,7 +308,7 @@ const Agenda = () => {
         <Paper
           elevation={6}
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: theme.fondoSecundario,
             color: 'white',
             p: 4,
             borderRadius: 3,
@@ -333,7 +331,7 @@ const Agenda = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <CalendarMonthIcon sx={{ fontSize: 48 }} />
-              <Box>
+              <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1 }}>
                 <Typography variant="h4" fontWeight="bold">
                   Agenda de Citas
                 </Typography>
@@ -403,7 +401,7 @@ const Agenda = () => {
           sx={{
             p: 2,
             mb: 3,
-            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            bgcolor: theme.colorCard,
             borderRadius: 2
           }}
         >
@@ -550,7 +548,7 @@ const Agenda = () => {
             sx={{
               p: 6,
               textAlign: 'center',
-              bgcolor: 'rgba(255, 255, 255, 0.95)',
+              bgcolor: theme.colorCard,
               borderRadius: 3
             }}
           >
@@ -606,7 +604,7 @@ const Agenda = () => {
                 <Card
                   elevation={4}
                   sx={{
-                    bgcolor: 'rgba(255, 255, 255, 0.98)',
+                    bgcolor: theme.colorCard,
                     backdropFilter: 'blur(10px)',
                     borderRadius: 3,
                     transition: 'all 0.3s ease',

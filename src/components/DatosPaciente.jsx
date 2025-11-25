@@ -35,9 +35,10 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useNavigate } from 'react-router-dom';
 import BotonInicio from './BotonInicio';
 import AsignarCuestionarios from './AsignarCuestionarios';
-import fondoMenu from '../assets/fondo-menu.png';
+import { useTheme } from '../ThemeContext';
 
 const DatosPaciente = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState([]);
   const [filtro, setFiltro] = useState("");
@@ -173,10 +174,7 @@ const DatosPaciente = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: theme.fondoDegradado,
         py: 4
       }}
     >
@@ -184,7 +182,7 @@ const DatosPaciente = () => {
         {/* Header */}
         <Box
           sx={{
-            bgcolor: 'white',
+            background: theme.fondoSecundario,
             p: 3,
             borderRadius: 2,
             boxShadow: 3,
@@ -194,9 +192,11 @@ const DatosPaciente = () => {
             justifyContent: 'space-between'
           }}
         >
-          <Typography variant="h4" fontWeight="bold" color="primary">
-            Gestión de Pacientes
-          </Typography>
+          <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1 }}>
+            <Typography variant="h4" fontWeight="bold" sx={{ color: 'white' }}>
+              Gestión de Pacientes
+            </Typography>
+          </Box>
           <BotonInicio />
         </Box>
 

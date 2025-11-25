@@ -11,11 +11,15 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import QuizIcon from '@mui/icons-material/Quiz';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { supabase } from '../supabaseClient';
+import { useTheme } from '../ThemeContext';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const Menu = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [contraida, setContraida] = useState(false);
   const [panelAbierto, setPanelAbierto] = useState(null);
   const [consultas, setConsultas] = useState([]);
@@ -258,33 +262,18 @@ const Menu = () => {
   return (
     <Box
       sx={{
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: theme.fondoDegradado,
         minHeight: '100vh',
         display: 'flex',
         overflow: 'hidden',
       }}
     >
-      {/* Overlay oscuro */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          zIndex: 0,
-        }}
-      />
 
       {/* Barra lateral izquierda mejorada */}
       <Box
         sx={{
           width: contraida ? 80 : 300,
-          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+          backgroundColor: theme.colorPaper,
           backdropFilter: 'blur(10px)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
           p: 0,
@@ -301,17 +290,18 @@ const Menu = () => {
         {/* Header de la barra lateral */}
         <Box
           sx={{
-            p: 3,
-            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+            p: contraida ? 1.5 : 3,
+            background: theme.fondoSecundario,
             color: 'white',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 2,
+            justifyContent: contraida ? 'center' : 'space-between',
+            flexDirection: contraida ? 'column' : 'row',
+            gap: contraida ? 1 : 2,
             transition: 'all 0.3s ease',
           }}
         >
-          {!contraida && (
+          {!contraida ? (
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <MenuIcon sx={{ fontSize: 32 }} />
@@ -319,25 +309,77 @@ const Menu = () => {
                   Menú Principal
                 </Typography>
               </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <IconButton
+                  onClick={theme.toggleModoOscuro}
+                  sx={{
+                    color: 'white',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                  title={theme.modoOscuro ? 'Modo claro' : 'Modo oscuro'}
+                >
+                  {theme.modoOscuro ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+                <IconButton
+                  onClick={() => setContraida(!contraida)}
+                  sx={{
+                    color: 'white',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                >
+                  <ChevronLeftIcon
+                    sx={{
+                      transform: 'rotate(0deg)',
+                      transition: 'transform 0.3s ease',
+                    }}
+                  />
+                </IconButton>
+              </Box>
+            </>
+          ) : (
+            <>
+              <IconButton
+                onClick={theme.toggleModoOscuro}
+                size="small"
+                sx={{
+                  color: 'white',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
+                title={theme.modoOscuro ? 'Modo claro' : 'Modo oscuro'}
+              >
+                {theme.modoOscuro ? <Brightness7Icon fontSize="small" /> : <Brightness4Icon fontSize="small" />}
+              </IconButton>
+              <IconButton
+                onClick={() => setContraida(false)}
+                size="small"
+                sx={{
+                  color: 'white',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
+                title="Expandir menú"
+              >
+                <ChevronLeftIcon
+                  fontSize="small"
+                  sx={{
+                    transform: 'rotate(180deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                />
+              </IconButton>
             </>
           )}
-          <IconButton
-            onClick={() => setContraida(!contraida)}
-            sx={{
-              color: 'white',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              },
-            }}
-          >
-            <ChevronLeftIcon
-              sx={{
-                transform: contraida ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease',
-              }}
-            />
-          </IconButton>
         </Box>
 
         {!contraida && <Divider />}
@@ -421,7 +463,7 @@ const Menu = () => {
           top: 0,
           bottom: 0,
           width: panelAbierto ? 400 : 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+          backgroundColor: theme.colorPaper,
           backdropFilter: 'blur(10px)',
           boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.15)',
           transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -437,7 +479,7 @@ const Menu = () => {
             <Box
               sx={{
                 p: 3,
-                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                background: theme.fondoSecundario,
                 color: 'white',
                 display: 'flex',
                 alignItems: 'center',

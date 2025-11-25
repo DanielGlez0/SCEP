@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import fondoMenu from '../assets/fondo-menu.png';
+import { useTheme } from '../ThemeContext';
 import BotonInicio from './BotonInicio';
 import {
   Box,
@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 
 const GestionCuestionarios = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [cuestionarios, setCuestionarios] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -138,10 +139,7 @@ const GestionCuestionarios = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: theme.fondoDegradado,
         py: 4,
       }}
     >
@@ -151,14 +149,14 @@ const GestionCuestionarios = () => {
             <BotonInicio />
             <Box
               sx={{
-                bgcolor: 'white',
+                bgcolor: 'rgba(0, 0, 0, 0.5)',
                 px: 3,
                 py: 2,
                 borderRadius: 2,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               }}
             >
-              <Typography variant="h4" component="h1" fontWeight="bold" color="primary">
+              <Typography variant="h4" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
                 Gestión de Cuestionarios
               </Typography>
             </Box>

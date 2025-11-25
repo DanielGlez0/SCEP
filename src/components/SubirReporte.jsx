@@ -34,9 +34,10 @@ import UndoIcon from '@mui/icons-material/Undo';
 import CreateIcon from '@mui/icons-material/Create';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import BotonInicio from './BotonInicio';
-import fondoMenu from '../assets/fondo-menu.png';
+import { useTheme } from '../ThemeContext';
 
 const SubirReporte = () => {
+  const theme = useTheme();
   const [pacientes, setPacientes] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState("");
   const [titulo, setTitulo] = useState("");
@@ -201,10 +202,7 @@ const SubirReporte = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: theme.fondoDegradado,
         py: 4
       }}
     >
@@ -213,7 +211,7 @@ const SubirReporte = () => {
         <Paper
           elevation={6}
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: theme.fondoSecundario,
             color: 'white',
             p: 4,
             borderRadius: 3,
@@ -236,7 +234,7 @@ const SubirReporte = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <DescriptionIcon sx={{ fontSize: 48 }} />
-              <Box>
+              <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1 }}>
                 <Typography variant="h4" fontWeight="bold">
                   Crear Nuevo Reporte
                 </Typography>
