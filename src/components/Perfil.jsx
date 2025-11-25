@@ -11,7 +11,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   TextField,
-  Chip
+  Chip,
+  IconButton
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -21,12 +22,14 @@ import EventIcon from '@mui/icons-material/Event';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import HomeIcon from '@mui/icons-material/Home';
 import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext';
-import BotonInicio from './BotonInicio';
 
 const PerfilPsicologo = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [userId, setUserId] = useState(null);
   const [pacientesRegistrados, setPacientesRegistrados] = useState(0);
   const [horasVistas, setHorasVistas] = useState(0);
@@ -59,6 +62,20 @@ const PerfilPsicologo = () => {
 
     setUserId(user.id);
 
+    // Obtener el ID del usuario en la tabla usuarios usando su email
+    const { data: usuarioData, error: usuarioError } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('email', user.email)
+      .single();
+
+    if (usuarioError || !usuarioData) {
+      console.error('Error obteniendo datos del usuario:', usuarioError);
+      return;
+    }
+
+    const usuarioId = usuarioData.id;
+
     // Cargar pacientes registrados
     const { data: pacientes, error: pacientesError } = await supabase
       .from('usuarios')
@@ -70,11 +87,11 @@ const PerfilPsicologo = () => {
       setPacientesRegistrados(pacientes?.length || 0);
     }
 
-    // Cargar todas las citas del psicólogo
+    // Cargar todas las citas del psicólogo usando el ID de la tabla usuarios
     const { data: citasData, error: citasError } = await supabase
       .from('citas')
       .select('*')
-      .eq('psicologo_id', user.id)
+      .eq('psicologo_id', usuarioId)
       .order('hora', { ascending: true });
 
     if (!citasError) {
@@ -207,10 +224,12 @@ const PerfilPsicologo = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: theme.fondoDegradado,
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative',
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Box sx={{ maxWidth: 1200, mx: 'auto', px: 3 }}>
         {/* Header con información del psicólogo */}
         <Paper
@@ -225,7 +244,18 @@ const PerfilPsicologo = () => {
           }}
         >
           <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-            <BotonInicio />
+            <IconButton
+              onClick={() => navigate('/menu')}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)' },
+                transition: 'all 0.2s ease',
+              }}
+              title="Ir al menú principal"
+            >
+              <HomeIcon color="primary" />
+            </IconButton>
           </Box>
           
           <Grid container spacing={3} alignItems="center">
@@ -242,7 +272,7 @@ const PerfilPsicologo = () => {
               </Avatar>
             </Grid>
             <Grid item xs>
-              <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1, display: 'inline-block', mb: 1 }}>
+              <Box sx={{ ...(theme.modoOscuro && { bgcolor: 'rgba(0, 0, 0, 0.3)' }), px: 2, py: 1, borderRadius: 1, display: 'inline-block', mb: 1 }}>
                 <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ mb: 0 }}>
                   Dr. Juan Pérez
                 </Typography>

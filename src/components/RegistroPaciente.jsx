@@ -19,38 +19,101 @@ const RegistroPaciente = () => {
   const [edad, setEdad] = useState("");
   const [telefono, setTelefono] = useState("");
   const [error, setError] = useState("");
+  const [errores, setErrores] = useState({});
   const navigate = useNavigate();
+
+  const validarCampo = (campo, valor) => {
+    let mensajeError = "";
+    
+    switch(campo) {
+      case 'email':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!valor) {
+          mensajeError = "El correo es obligatorio";
+        } else if (!emailRegex.test(valor)) {
+          mensajeError = "Ingresa un correo válido (ej: usuario@email.com)";
+        }
+        break;
+      
+      case 'contraseña':
+        if (!valor) {
+          mensajeError = "La contraseña es obligatoria";
+        } else if (valor.length < 6) {
+          mensajeError = "Mínimo 6 caracteres";
+        } else if (!/(?=.*[a-z])/.test(valor)) {
+          mensajeError = "Debe contener al menos una letra minúscula";
+        } else if (!/(?=.*[A-Z])/.test(valor)) {
+          mensajeError = "Debe contener al menos una letra mayúscula";
+        } else if (!/(?=.*\d)/.test(valor)) {
+          mensajeError = "Debe contener al menos un número";
+        }
+        break;
+      
+      case 'confirmarContraseña':
+        if (!valor) {
+          mensajeError = "Debes confirmar la contraseña";
+        } else if (valor !== contraseña) {
+          mensajeError = "Las contraseñas no coinciden";
+        }
+        break;
+      
+      case 'nombre':
+        if (!valor.trim()) {
+          mensajeError = "El nombre es obligatorio";
+        } else if (valor.trim().length < 3) {
+          mensajeError = "Mínimo 3 caracteres";
+        } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(valor)) {
+          mensajeError = "Solo letras y espacios";
+        }
+        break;
+      
+      case 'edad':
+        const edadNum = parseInt(valor);
+        if (!valor) {
+          mensajeError = "La edad es obligatoria";
+        } else if (isNaN(edadNum) || edadNum <= 0) {
+          mensajeError = "Edad inválida";
+        } else if (edadNum < 18) {
+          mensajeError = "Debes ser mayor de 18 años";
+        } else if (edadNum > 120) {
+          mensajeError = "Edad no válida";
+        }
+        break;
+      
+      case 'telefono':
+        const telefonoLimpio = valor.replace(/\D/g, '');
+        if (!valor) {
+          mensajeError = "El teléfono es obligatorio";
+        } else if (telefonoLimpio.length !== 10) {
+          mensajeError = "Debe tener 10 dígitos";
+        }
+        break;
+    }
+    
+    setErrores(prev => ({...prev, [campo]: mensajeError}));
+    return mensajeError === "";
+  };
 
   const manejarRegistro = async (e) => {
     e.preventDefault();
     setError("");
-    // Validaciones en cliente
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    if (!emailRegex.test(email)) {
-      setError('Ingresa un correo electrónico válido.');
-      return;
-    }
-
-    if (contraseña.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-
-    if (contraseña !== confirmarContraseña) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-
-    if (!nombre.trim()) {
-      setError('El nombre es requerido.');
+    
+    // Validar todos los campos
+    const camposValidos = [
+      validarCampo('email', email),
+      validarCampo('contraseña', contraseña),
+      validarCampo('confirmarContraseña', confirmarContraseña),
+      validarCampo('nombre', nombre),
+      validarCampo('edad', edad),
+      validarCampo('telefono', telefono)
+    ];
+    
+    if (!camposValidos.every(v => v)) {
+      setError('Por favor corrige los errores antes de continuar');
       return;
     }
 
     const edadNum = parseInt(edad);
-    if (isNaN(edadNum) || edadNum <= 0) {
-      setError('Ingresa una edad válida.');
-      return;
-    }
 
     // Crear usuario en Auth
     const { data: registroAuth, error: errorAuth } = await supabase.auth.signUp({
@@ -205,54 +268,96 @@ const RegistroPaciente = () => {
             label="Correo electrónico"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errores.email) validarCampo('email', e.target.value);
+            }}
+            onBlur={(e) => validarCampo('email', e.target.value)}
             fullWidth
             margin="normal"
             required
+            error={!!errores.email}
+            helperText={errores.email}
           />
           <TextField
             label="Contraseña"
             type="password"
             value={contraseña}
-            onChange={(e) => setContraseña(e.target.value)}
+            onChange={(e) => {
+              setContraseña(e.target.value);
+              if (errores.contraseña) validarCampo('contraseña', e.target.value);
+              if (confirmarContraseña && errores.confirmarContraseña) {
+                validarCampo('confirmarContraseña', confirmarContraseña);
+              }
+            }}
+            onBlur={(e) => validarCampo('contraseña', e.target.value)}
             fullWidth
             margin="normal"
             required
+            error={!!errores.contraseña}
+            helperText={errores.contraseña || "Mínimo 6 caracteres, 1 mayúscula, 1 minúscula, 1 número"}
           />
           <TextField
             label="Confirmar contraseña"
             type="password"
             value={confirmarContraseña}
-            onChange={(e) => setConfirmarContraseña(e.target.value)}
+            onChange={(e) => {
+              setConfirmarContraseña(e.target.value);
+              if (errores.confirmarContraseña) validarCampo('confirmarContraseña', e.target.value);
+            }}
+            onBlur={(e) => validarCampo('confirmarContraseña', e.target.value)}
             fullWidth
             margin="normal"
             required
+            error={!!errores.confirmarContraseña}
+            helperText={errores.confirmarContraseña}
           />
           <TextField
             label="Nombre completo"
             value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => {
+              setNombre(e.target.value);
+              if (errores.nombre) validarCampo('nombre', e.target.value);
+            }}
+            onBlur={(e) => validarCampo('nombre', e.target.value)}
             fullWidth
             margin="normal"
             required
+            error={!!errores.nombre}
+            helperText={errores.nombre}
           />
           <TextField
             label="Edad"
             type="number"
             value={edad}
-            onChange={(e) => setEdad(e.target.value)}
+            onChange={(e) => {
+              setEdad(e.target.value);
+              if (errores.edad) validarCampo('edad', e.target.value);
+            }}
+            onBlur={(e) => validarCampo('edad', e.target.value)}
             fullWidth
             margin="normal"
             required
+            error={!!errores.edad}
+            helperText={errores.edad || "Debe ser mayor de 18 años"}
+            inputProps={{ min: 18, max: 120 }}
           />
           <TextField
             label="Teléfono"
             type="tel"
             value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
+            onChange={(e) => {
+              const valor = e.target.value.replace(/\D/g, '').slice(0, 10);
+              setTelefono(valor);
+              if (errores.telefono) validarCampo('telefono', valor);
+            }}
+            onBlur={(e) => validarCampo('telefono', e.target.value)}
             fullWidth
             margin="normal"
             required
+            error={!!errores.telefono}
+            helperText={errores.telefono || "10 dígitos"}
+            inputProps={{ maxLength: 10 }}
           />
 
           <Button

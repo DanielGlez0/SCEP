@@ -33,11 +33,13 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import UndoIcon from '@mui/icons-material/Undo';
 import CreateIcon from '@mui/icons-material/Create';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
-import BotonInicio from './BotonInicio';
+import HomeIcon from '@mui/icons-material/Home';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext';
 
 const SubirReporte = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [pacientes, setPacientes] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState("");
   const [titulo, setTitulo] = useState("");
@@ -144,13 +146,15 @@ const SubirReporte = () => {
         setDescripcion(prev => prev + notaTexto);
         setMensaje("✓ Texto transcrito y agregado al reporte correctamente");
         setError(false);
+        // Limpiar el canvas después de transcribir
+        limpiarCanvas();
       } else {
         setMensaje("⚠ No se pudo reconocer texto. Intenta escribir más claro o con trazo más grueso.");
         setError(true);
       }
       
       setTimeout(() => setMensaje(""), 5000);
-      cerrarDialogoEscritura();
+      // NO cerrar el diálogo automáticamente para permitir más transcripciones
     } catch (err) {
       console.error('Error en OCR:', err);
       setMensaje("Error al transcribir el texto. Inténtalo de nuevo.");
@@ -202,10 +206,12 @@ const SubirReporte = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: theme.fondoDegradado,
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative',
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Container maxWidth="md">
         {/* Header con gradiente */}
         <Paper
@@ -234,7 +240,7 @@ const SubirReporte = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <DescriptionIcon sx={{ fontSize: 48 }} />
-              <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1 }}>
+              <Box sx={{ ...(theme.modoOscuro && { bgcolor: 'rgba(0, 0, 0, 0.3)' }), px: 2, py: 1, borderRadius: 1 }}>
                 <Typography variant="h4" fontWeight="bold">
                   Crear Nuevo Reporte
                 </Typography>
@@ -243,7 +249,18 @@ const SubirReporte = () => {
                 </Typography>
               </Box>
             </Box>
-            <BotonInicio />
+            <IconButton
+              onClick={() => navigate('/menu')}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)' },
+                transition: 'all 0.2s ease',
+              }}
+              title="Ir al menú principal"
+            >
+              <HomeIcon color="primary" />
+            </IconButton>
           </Box>
         </Paper>
 

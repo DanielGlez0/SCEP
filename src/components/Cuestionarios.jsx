@@ -19,11 +19,14 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useTheme } from '../ThemeContext';
+import BotonInicio from './BotonInicio';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const Cuestionarios = () => {
   const { id } = useParams(); // ID de cuestionarios_asignados
   const navigate = useNavigate();
+  const theme = useTheme();
   const [asignacion, setAsignacion] = useState(null);
   const [preguntas, setPreguntas] = useState([]);
   const [respuestas, setRespuestas] = useState({});
@@ -200,33 +203,34 @@ const Cuestionarios = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative'
       }}
     >
-      <Container maxWidth="md">
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/cuestionarios-disponibles')}
-          sx={{
-            mb: 3,
-            color: 'white',
-            bgcolor: 'rgba(0, 0, 0, 0.5)',
-            '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' }
-          }}
-        >
-          Volver
-        </Button>
+      {theme.overlay && <Box sx={theme.overlay} />}
+      <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <BotonInicio />
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/cuestionarios-disponibles')}
+            sx={{
+              color: 'white',
+              bgcolor: 'rgba(0, 0, 0, 0.5)',
+              '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' }
+            }}
+          >
+            Volver
+          </Button>
+        </Box>
 
         <Paper
           elevation={3}
           sx={{
             p: 4,
             mb: 4,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: theme.fondoSecundario,
             color: 'white'
           }}
         >

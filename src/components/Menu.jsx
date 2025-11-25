@@ -110,7 +110,12 @@ const Menu = () => {
     setCargando(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('No hay usuario autenticado');
+        return;
+      }
+
+      console.log('Usuario autenticado:', user.email);
 
       // Obtener datos del usuario por email
       const { data: userData, error: userError } = await supabase
@@ -118,6 +123,8 @@ const Menu = () => {
         .select('id, nombre, email, telefono, edad')
         .eq('email', user.email)
         .maybeSingle();
+
+      console.log('Datos del usuario:', userData, 'Error:', userError);
 
       if (!userError && userData) {
         // Obtener estadísticas
@@ -134,14 +141,19 @@ const Menu = () => {
         const citasVistas = citas?.filter(c => c.vista).length || 0;
         const citasCanceladas = citas?.filter(c => c.cancelada).length || 0;
 
-        setPsicologoInfo({
+        const info = {
           nombre: userData?.nombre || 'Psicólogo',
           email: userData?.email || user.email,
           pacientes: pacientes?.length || 0,
           totalCitas: citas?.length || 0,
           citasVistas,
           citasCanceladas
-        });
+        };
+
+        console.log('Info del psicólogo cargada:', info);
+        setPsicologoInfo(info);
+      } else {
+        console.error('No se encontró usuario en la tabla usuarios');
       }
     } catch (err) {
       console.error('Error cargando info psicólogo:', err);
@@ -262,12 +274,14 @@ const Menu = () => {
   return (
     <Box
       sx={{
-        background: theme.fondoDegradado,
+        ...theme.fondo,
         minHeight: '100vh',
         display: 'flex',
         overflow: 'hidden',
+        position: 'relative',
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
 
       {/* Barra lateral izquierda mejorada */}
       <Box
@@ -621,7 +635,11 @@ const Menu = () => {
                         </Typography>
                       </Box>
                     </>
-                  ) : null}
+                  ) : (
+                    <Typography color="text.secondary" variant="body2">
+                      No se pudo cargar la información del perfil.
+                    </Typography>
+                  )}
                 </>
               )}
 

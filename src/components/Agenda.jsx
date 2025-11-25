@@ -30,15 +30,17 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import GoogleIcon from '@mui/icons-material/Google';
+import HomeIcon from '@mui/icons-material/Home';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { supabase } from "../supabaseClient";
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext';
-import BotonInicio from './BotonInicio';
 
 const Agenda = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [pacientes, setPacientes] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [esNuevoPaciente, setEsNuevoPaciente] = useState(false);
@@ -299,10 +301,12 @@ const Agenda = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: theme.fondoDegradado,
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative',
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Container maxWidth="lg">
         {/* Header */}
         <Paper
@@ -331,7 +335,7 @@ const Agenda = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <CalendarMonthIcon sx={{ fontSize: 48 }} />
-              <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1 }}>
+              <Box sx={{ ...(theme.modoOscuro && { bgcolor: 'rgba(0, 0, 0, 0.3)' }), px: 2, py: 1, borderRadius: 1 }}>
                 <Typography variant="h4" fontWeight="bold">
                   Agenda de Citas
                 </Typography>
@@ -341,7 +345,18 @@ const Agenda = () => {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <BotonInicio />
+              <IconButton
+                onClick={() => navigate('/menu')}
+                sx={{
+                  bgcolor: 'white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)' },
+                  transition: 'all 0.2s ease',
+                }}
+                title="Ir al menú principal"
+              >
+                <HomeIcon color="primary" />
+              </IconButton>
               {citasFiltradas.length > 0 && (
                 <Button
                   variant="contained"
@@ -401,8 +416,11 @@ const Agenda = () => {
           sx={{
             p: 2,
             mb: 3,
-            bgcolor: theme.colorCard,
-            borderRadius: 2
+            bgcolor: theme.modoOscuro ? theme.colorCard : '#ffffff',
+            borderRadius: 2,
+            border: theme.modoOscuro ? 'none' : '3px solid #667eea',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -422,9 +440,12 @@ const Agenda = () => {
                 }}
                 size="small"
                 sx={{ 
-                  bgcolor: 'white',
+                  bgcolor: theme.modoOscuro ? 'rgba(255, 255, 255, 0.1)' : '#ffffff',
                   borderRadius: 1,
-                  minWidth: 200
+                  minWidth: 200,
+                  '& .MuiInputBase-input': {
+                    color: theme.modoOscuro ? 'white' : 'inherit'
+                  }
                 }}
                 InputLabelProps={{
                   shrink: true,

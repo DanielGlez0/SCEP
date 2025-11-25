@@ -32,8 +32,8 @@ import EventIcon from '@mui/icons-material/Event';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import HomeIcon from '@mui/icons-material/Home';
 import { useNavigate } from 'react-router-dom';
-import BotonInicio from './BotonInicio';
 import AsignarCuestionarios from './AsignarCuestionarios';
 import { useTheme } from '../ThemeContext';
 
@@ -174,30 +174,45 @@ const DatosPaciente = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: theme.fondoDegradado,
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative',
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Box sx={{ maxWidth: 1200, mx: 'auto', px: 3 }}>
         {/* Header */}
         <Box
           sx={{
-            background: theme.fondoSecundario,
+            background: theme.modoOscuro ? theme.fondoSecundario : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             p: 3,
             borderRadius: 2,
             boxShadow: 3,
             mb: 4,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            position: 'relative',
+            zIndex: 2
           }}
         >
-          <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', px: 2, py: 1, borderRadius: 1 }}>
+          <Box sx={{ ...(theme.modoOscuro && { bgcolor: 'rgba(0, 0, 0, 0.3)' }), px: 2, py: 1, borderRadius: 1 }}>
             <Typography variant="h4" fontWeight="bold" sx={{ color: 'white' }}>
               Gestión de Pacientes
             </Typography>
           </Box>
-          <BotonInicio />
+          <IconButton
+            onClick={() => navigate('/menu')}
+            sx={{
+              bgcolor: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)' },
+              transition: 'all 0.2s ease',
+            }}
+            title="Ir al menú principal"
+          >
+            <HomeIcon color="primary" />
+          </IconButton>
         </Box>
 
         {/* Alertas */}

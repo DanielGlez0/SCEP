@@ -27,6 +27,7 @@ import {
   Delete as DeleteIcon,
   Close as CloseIcon,
   Assignment as AssignmentIcon,
+  Home as HomeIcon,
 } from '@mui/icons-material';
 
 const GestionCuestionarios = () => {
@@ -139,24 +140,39 @@ const GestionCuestionarios = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: theme.fondoDegradado,
+        ...theme.fondo,
         py: 4,
+        position: 'relative',
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <BotonInicio />
+            <IconButton
+              onClick={() => navigate('/menu')}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)' },
+                transition: 'all 0.2s ease',
+              }}
+              title="Ir al menú principal"
+            >
+              <HomeIcon color="primary" />
+            </IconButton>
             <Box
               sx={{
-                bgcolor: 'rgba(0, 0, 0, 0.5)',
+                bgcolor: theme.modoOscuro ? 'rgba(0, 0, 0, 0.5)' : '#ffffff',
                 px: 3,
                 py: 2,
                 borderRadius: 2,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                position: 'relative',
+                zIndex: 2
               }}
             >
-              <Typography variant="h4" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
+              <Typography variant="h4" component="h1" fontWeight="bold" sx={{ color: theme.modoOscuro ? 'white' : 'primary.main' }}>
                 Gestión de Cuestionarios
               </Typography>
             </Box>

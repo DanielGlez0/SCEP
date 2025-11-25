@@ -69,11 +69,11 @@ const App = () => {
         {/* Redirección desde la raíz */}
         <Route
           path="/"
-          element={<Navigate to={usuario ? "/menu" : "/login"} />}
+          element={<Navigate to="/login" replace />}
         />
 
         {/* Ruta pública: Login */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={usuario ? <Navigate to="/menu" replace /> : <Login />} />
 
         {/* Ruta pública: Registro de pacientes */}
         <Route path="/registro" element={<RegistroPaciente />} />

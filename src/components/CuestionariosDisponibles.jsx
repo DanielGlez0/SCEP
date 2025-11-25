@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { useTheme } from '../ThemeContext';
+import BotonInicio from './BotonInicio';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const CuestionariosDisponibles = () => {
@@ -22,6 +24,7 @@ const CuestionariosDisponibles = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const theme = useTheme();
 
   useEffect(() => {
     cargarCuestionarios();
@@ -155,27 +158,28 @@ const CuestionariosDisponibles = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative'
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Container maxWidth="lg">
         <Box
           sx={{
-            bgcolor: 'white',
+            bgcolor: theme.colorPaper,
             p: 3,
             borderRadius: 2,
             boxShadow: 3,
             mb: 4,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            position: 'relative',
+            zIndex: 2
           }}
         >
-          <Box sx={{ flex: 1, textAlign: 'center' }}>
+          <Box sx={{ flex: 1, textAlign: 'center', ...(theme.modoOscuro && { bgcolor: 'rgba(0, 0, 0, 0.3)', py: 1, borderRadius: 1 }) }}>
             <Typography variant="h4" fontWeight="bold" color="primary">
               Cuestionarios Disponibles
             </Typography>

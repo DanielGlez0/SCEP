@@ -27,6 +27,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
 import BotonInicio from './BotonInicio';
+import { useTheme } from '../ThemeContext';
 import fondoMenu from '../assets/fondo-menu.png';
 
 const ReportesPaciente = () => {
@@ -34,6 +35,7 @@ const ReportesPaciente = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const paciente = location.state?.paciente;
+  const theme = useTheme();
 
   const [reportes, setReportes] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -177,25 +179,25 @@ const ReportesPaciente = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: `url(${fondoMenu})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        py: 4
+        ...theme.fondo,
+        py: 4,
+        position: 'relative'
       }}
     >
+      {theme.overlay && <Box sx={theme.overlay} />}
       <Box sx={{ maxWidth: 1400, mx: 'auto', px: 3 }}>
         {/* Header con gradiente */}
         <Paper
           elevation={6}
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: theme.fondoSecundario,
             color: 'white',
             p: 4,
             borderRadius: 3,
             mb: 4,
             position: 'relative',
             overflow: 'hidden',
+            zIndex: 2,
             '&::before': {
               content: '""',
               position: 'absolute',
