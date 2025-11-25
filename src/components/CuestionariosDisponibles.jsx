@@ -40,34 +40,77 @@ const CuestionariosDisponibles = () => {
         .from('usuarios')
         .select('id')
         .eq('email', user.email)
-        .single();
+        .maybeSingle();
 
-      if (usuarioError) throw usuarioError;
+      if (usuarioError) {
+        console.error('Error al obtener usuario:', usuarioError);
+        throw usuarioError;
+      }
+      
+      if (!usuarioData) {
+        throw new Error('Usuario no encontrado en la base de datos');
+      }
 
-      // Obtener cuestionarios asignados con información del cuestionario
-      const { data, error } = await supabase
+      // Obtener cuestionarios asignados
+      const { data: asignaciones, error: errorAsignaciones } = await supabase
         .from('cuestionarios_asignados')
-        .select(`
-          id,
-          cuestionario_id,
-          completado,
-          puntaje_total,
-          fecha_completado,
-          cuestionarios (id, Titulo, Descripcion)
-        `)
+        .select('id, cuestionario_id, completado, puntaje_total, fecha_completado, fecha_asignacion')
         .eq('paciente_id', usuarioData.id)
         .order('fecha_asignacion', { ascending: false });
 
-      if (error) throw error;
+      if (errorAsignaciones) throw errorAsignaciones;
 
-      // Transformar datos para incluir información de asignación
-      const cuestionariosConEstado = (data || []).map(asignacion => ({
-        ...asignacion.cuestionarios,
-        asignacion_id: asignacion.id,
-        completado: asignacion.completado,
-        puntaje_total: asignacion.puntaje_total,
-        fecha_completado: asignacion.fecha_completado
-      }));
+      // Filtrar para mostrar solo la asignación más reciente de cada cuestionario
+      // Si hay un pendiente, mostrar solo ese; si todos están completados, mostrar el más reciente
+      const cuestionariosUnicos = new Map();
+      
+      (asignaciones || []).forEach(asignacion => {
+        const cuestionarioId = asignacion.cuestionario_id;
+        const actual = cuestionariosUnicos.get(cuestionarioId);
+        
+        // Si no hay ninguna asignación de este cuestionario, agregarla
+        if (!actual) {
+          cuestionariosUnicos.set(cuestionarioId, asignacion);
+        } else {
+          // Si la actual es pendiente, mantenerla
+          // Si la nueva es pendiente y la actual está completada, reemplazar
+          if (!actual.completado) {
+            // Ya tenemos una pendiente, no hacer nada
+          } else if (!asignacion.completado) {
+            // La nueva es pendiente y la actual está completada, reemplazar
+            cuestionariosUnicos.set(cuestionarioId, asignacion);
+          }
+          // Si ambas están completadas, mantener la más reciente (que ya está por el order)
+        }
+      });
+
+      // Obtener los IDs únicos de cuestionarios
+      const cuestionarioIds = Array.from(cuestionariosUnicos.keys());
+
+      if (cuestionarioIds.length === 0) {
+        setCuestionarios([]);
+        return;
+      }
+
+      // Obtener información de los cuestionarios
+      const { data: cuestionariosData, error: errorCuestionarios } = await supabase
+        .from('cuestionarios')
+        .select('id, Titulo, Descripcion')
+        .in('id', cuestionarioIds);
+
+      if (errorCuestionarios) throw errorCuestionarios;
+
+      // Combinar datos de asignaciones con información de cuestionarios
+      const cuestionariosConEstado = Array.from(cuestionariosUnicos.values()).map(asignacion => {
+        const cuestionario = cuestionariosData.find(c => c.id === asignacion.cuestionario_id);
+        return {
+          ...cuestionario,
+          asignacion_id: asignacion.id,
+          completado: asignacion.completado,
+          puntaje_total: asignacion.puntaje_total,
+          fecha_completado: asignacion.fecha_completado
+        };
+      });
 
       setCuestionarios(cuestionariosConEstado);
     } catch (err) {

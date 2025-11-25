@@ -82,13 +82,9 @@ const Menu = () => {
   const cargarConsultas = async () => {
     setCargando(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const { data, error } = await supabase
         .from('citas')
-        .select('*')
-        .eq('psicologo_id', user.id)
+        .select('nombre, telefono, hora, vista, cancelada')
         .order('hora', { ascending: false })
         .limit(5);
       
@@ -112,14 +108,14 @@ const Menu = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Obtener datos del usuario
+      // Obtener datos del usuario por email
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+        .select('id, nombre, email, telefono, edad')
+        .eq('email', user.email)
+        .maybeSingle();
 
-      if (!userError) {
+      if (!userError && userData) {
         // Obtener estadísticas
         const { data: pacientes } = await supabase
           .from('usuarios')
@@ -129,8 +125,7 @@ const Menu = () => {
 
         const { data: citas } = await supabase
           .from('citas')
-          .select('*')
-          .eq('psicologo_id', user.id);
+          .select('id, vista, cancelada');
 
         const citasVistas = citas?.filter(c => c.vista).length || 0;
         const citasCanceladas = citas?.filter(c => c.cancelada).length || 0;
@@ -154,26 +149,28 @@ const Menu = () => {
   const cargarCitasHoy = async () => {
     setCargando(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const hoy = new Date();
-      const inicioDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0);
-      const finDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59);
+      hoy.setHours(0, 0, 0, 0);
+      
+      const manana = new Date(hoy);
+      manana.setDate(manana.getDate() + 1);
 
       const { data, error } = await supabase
         .from('citas')
-        .select('*')
-        .eq('psicologo_id', user.id)
-        .gte('hora', inicioDia.toISOString())
-        .lte('hora', finDia.toISOString())
+        .select('nombre, telefono, hora, vista, cancelada')
+        .gte('hora', hoy.toISOString())
+        .lt('hora', manana.toISOString())
         .order('hora', { ascending: true });
 
-      if (!error) {
+      if (error) {
+        console.error('Error cargando citas de hoy:', error);
+        setCitasHoy([]);
+      } else {
         setCitasHoy(data || []);
       }
     } catch (err) {
-      console.error('Error cargando citas de hoy:', err);
+      console.error('Error inesperado cargando citas de hoy:', err);
+      setCitasHoy([]);
     } finally {
       setCargando(false);
     }

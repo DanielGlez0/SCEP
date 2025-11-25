@@ -14,7 +14,6 @@ import {
   CardContent,
   IconButton,
   Chip,
-  Grid,
   Autocomplete,
   Dialog,
   DialogTitle,
@@ -51,6 +50,7 @@ const Agenda = () => {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState(false);
   const [filtro, setFiltro] = useState('todas');
+  const [fechaBusqueda, setFechaBusqueda] = useState('');
 
   useEffect(() => {
     const fetchUserAndCitas = async () => {
@@ -90,13 +90,12 @@ const Agenda = () => {
     const { data, error } = await supabase
       .from("citas")
       .select("*")
-      .eq("psicologo_id", psicologo_id)
       .order("hora", { ascending: true });
 
     if (error) {
       console.error("Error obteniendo citas:", error);
     } else {
-      setCitas(data);
+      setCitas(data || []);
     }
   };
 
@@ -257,23 +256,40 @@ const Agenda = () => {
     finSemana.setDate(inicioSemana.getDate() + 6);
     finSemana.setHours(23, 59, 59, 999);
 
-    return citas.filter(cita => {
-      const fechaCita = new Date(cita.hora);
+    let citasFiltradas = citas;
+
+    // Filtrar por fecha específica si se seleccionó
+    if (fechaBusqueda) {
+      const fechaSeleccionada = new Date(fechaBusqueda);
+      const inicioFecha = new Date(fechaSeleccionada.setHours(0, 0, 0, 0));
+      const finFecha = new Date(fechaSeleccionada.setHours(23, 59, 59, 999));
       
-      switch(filtro) {
-        case 'pasadas':
-          return fechaCita < ahora;
-        case 'hoy':
-          return fechaCita >= hoyInicio && fechaCita <= hoyFin;
-        case 'semana':
-          return fechaCita >= inicioSemana && fechaCita <= finSemana;
-        case 'futuras':
-          return fechaCita > ahora;
-        case 'todas':
-        default:
-          return true;
-      }
-    });
+      citasFiltradas = citasFiltradas.filter(cita => {
+        const fechaCita = new Date(cita.hora);
+        return fechaCita >= inicioFecha && fechaCita <= finFecha;
+      });
+    } else {
+      // Aplicar filtro predeterminado solo si no hay búsqueda por fecha
+      citasFiltradas = citasFiltradas.filter(cita => {
+        const fechaCita = new Date(cita.hora);
+        
+        switch(filtro) {
+          case 'pasadas':
+            return fechaCita < ahora;
+          case 'hoy':
+            return fechaCita >= hoyInicio && fechaCita <= hoyFin;
+          case 'semana':
+            return fechaCita >= inicioSemana && fechaCita <= finSemana;
+          case 'futuras':
+            return fechaCita > ahora;
+          case 'todas':
+          default:
+            return true;
+        }
+      });
+    }
+
+    return citasFiltradas;
   };
 
   const citasFiltradas = filtrarCitas();
@@ -391,79 +407,138 @@ const Agenda = () => {
             borderRadius: 2
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="subtitle1" fontWeight="bold" color="primary">
-              Filtrar por:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Chip
-                label={`Todas (${citas.length})`}
-                onClick={() => setFiltro('todas')}
-                color={filtro === 'todas' ? 'primary' : 'default'}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Búsqueda por fecha */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                Buscar por fecha:
+              </Typography>
+              <TextField
+                type="date"
+                value={fechaBusqueda}
+                onChange={(e) => {
+                  setFechaBusqueda(e.target.value);
+                  if (e.target.value) {
+                    setFiltro(''); // Limpiar filtro cuando se busca por fecha
+                  }
+                }}
+                size="small"
                 sx={{ 
-                  fontWeight: filtro === 'todas' ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: filtro === 'todas' ? undefined : 'rgba(0,0,0,0.08)' }
+                  bgcolor: 'white',
+                  borderRadius: 1,
+                  minWidth: 200
+                }}
+                InputLabelProps={{
+                  shrink: true,
                 }}
               />
-              <Chip
-                label={`Pasadas (${citas.filter(c => new Date(c.hora) < new Date()).length})`}
-                onClick={() => setFiltro('pasadas')}
-                color={filtro === 'pasadas' ? 'error' : 'default'}
-                sx={{ 
-                  fontWeight: filtro === 'pasadas' ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: filtro === 'pasadas' ? undefined : 'rgba(0,0,0,0.08)' }
-                }}
-              />
-              <Chip
-                label={`Hoy (${citas.filter(c => {
-                  const fecha = new Date(c.hora);
-                  const hoy = new Date();
-                  return fecha.getDate() === hoy.getDate() && 
-                         fecha.getMonth() === hoy.getMonth() && 
-                         fecha.getFullYear() === hoy.getFullYear();
-                }).length})`}
-                onClick={() => setFiltro('hoy')}
-                color={filtro === 'hoy' ? 'success' : 'default'}
-                sx={{ 
-                  fontWeight: filtro === 'hoy' ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: filtro === 'hoy' ? undefined : 'rgba(0,0,0,0.08)' }
-                }}
-              />
-              <Chip
-                label={`Esta Semana (${citas.filter(c => {
-                  const fecha = new Date(c.hora);
-                  const ahora = new Date();
-                  const diaActual = ahora.getDay();
-                  const diasHastaLunes = diaActual === 0 ? 6 : diaActual - 1;
-                  const inicioSemana = new Date(ahora);
-                  inicioSemana.setDate(ahora.getDate() - diasHastaLunes);
-                  inicioSemana.setHours(0, 0, 0, 0);
-                  const finSemana = new Date(inicioSemana);
-                  finSemana.setDate(inicioSemana.getDate() + 6);
-                  finSemana.setHours(23, 59, 59, 999);
-                  return fecha >= inicioSemana && fecha <= finSemana;
-                }).length})`}
-                onClick={() => setFiltro('semana')}
-                color={filtro === 'semana' ? 'info' : 'default'}
-                sx={{ 
-                  fontWeight: filtro === 'semana' ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: filtro === 'semana' ? undefined : 'rgba(0,0,0,0.08)' }
-                }}
-              />
-              <Chip
-                label={`Futuras (${citas.filter(c => new Date(c.hora) > new Date()).length})`}
-                onClick={() => setFiltro('futuras')}
-                color={filtro === 'futuras' ? 'secondary' : 'default'}
-                sx={{ 
-                  fontWeight: filtro === 'futuras' ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: filtro === 'futuras' ? undefined : 'rgba(0,0,0,0.08)' }
-                }}
-              />
+              {fechaBusqueda && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    setFechaBusqueda('');
+                    setFiltro('futuras');
+                  }}
+                  sx={{ fontWeight: 'bold' }}
+                >
+                  Limpiar
+                </Button>
+              )}
+            </Box>
+
+            <Divider />
+
+            {/* Filtros predeterminados */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                Filtrar por:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip
+                  label={`Todas (${citas.length})`}
+                  onClick={() => {
+                    setFiltro('todas');
+                    setFechaBusqueda('');
+                  }}
+                  color={filtro === 'todas' && !fechaBusqueda ? 'primary' : 'default'}
+                  sx={{ 
+                    fontWeight: filtro === 'todas' && !fechaBusqueda ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: filtro === 'todas' ? undefined : 'rgba(0,0,0,0.08)' }
+                  }}
+                />
+                <Chip
+                  label={`Pasadas (${citas.filter(c => new Date(c.hora) < new Date()).length})`}
+                  onClick={() => {
+                    setFiltro('pasadas');
+                    setFechaBusqueda('');
+                  }}
+                  color={filtro === 'pasadas' && !fechaBusqueda ? 'error' : 'default'}
+                  sx={{ 
+                    fontWeight: filtro === 'pasadas' && !fechaBusqueda ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: filtro === 'pasadas' ? undefined : 'rgba(0,0,0,0.08)' }
+                  }}
+                />
+                <Chip
+                  label={`Hoy (${citas.filter(c => {
+                    const fecha = new Date(c.hora);
+                    const hoy = new Date();
+                    return fecha.getDate() === hoy.getDate() && 
+                           fecha.getMonth() === hoy.getMonth() && 
+                           fecha.getFullYear() === hoy.getFullYear();
+                  }).length})`}
+                  onClick={() => {
+                    setFiltro('hoy');
+                    setFechaBusqueda('');
+                  }}
+                  color={filtro === 'hoy' && !fechaBusqueda ? 'success' : 'default'}
+                  sx={{ 
+                    fontWeight: filtro === 'hoy' && !fechaBusqueda ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: filtro === 'hoy' ? undefined : 'rgba(0,0,0,0.08)' }
+                  }}
+                />
+                <Chip
+                  label={`Esta Semana (${citas.filter(c => {
+                    const fecha = new Date(c.hora);
+                    const ahora = new Date();
+                    const diaActual = ahora.getDay();
+                    const diasHastaLunes = diaActual === 0 ? 6 : diaActual - 1;
+                    const inicioSemana = new Date(ahora);
+                    inicioSemana.setDate(ahora.getDate() - diasHastaLunes);
+                    inicioSemana.setHours(0, 0, 0, 0);
+                    const finSemana = new Date(inicioSemana);
+                    finSemana.setDate(inicioSemana.getDate() + 6);
+                    finSemana.setHours(23, 59, 59, 999);
+                    return fecha >= inicioSemana && fecha <= finSemana;
+                  }).length})`}
+                  onClick={() => {
+                    setFiltro('semana');
+                    setFechaBusqueda('');
+                  }}
+                  color={filtro === 'semana' && !fechaBusqueda ? 'info' : 'default'}
+                  sx={{ 
+                    fontWeight: filtro === 'semana' && !fechaBusqueda ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: filtro === 'semana' ? undefined : 'rgba(0,0,0,0.08)' }
+                  }}
+                />
+                <Chip
+                  label={`Futuras (${citas.filter(c => new Date(c.hora) > new Date()).length})`}
+                  onClick={() => {
+                    setFiltro('futuras');
+                    setFechaBusqueda('');
+                  }}
+                  color={filtro === 'futuras' && !fechaBusqueda ? 'secondary' : 'default'}
+                  sx={{ 
+                    fontWeight: filtro === 'futuras' && !fechaBusqueda ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: filtro === 'futuras' ? undefined : 'rgba(0,0,0,0.08)' }
+                  }}
+                />
+              </Box>
             </Box>
           </Box>
         </Paper>
@@ -481,17 +556,26 @@ const Agenda = () => {
           >
             <EventIcon sx={{ fontSize: 80, color: '#667eea', opacity: 0.5, mb: 2 }} />
             <Typography variant="h5" fontWeight="bold" color="primary" gutterBottom>
-              {filtro === 'todas' ? 'No hay citas agendadas' : `No hay citas ${
-                filtro === 'pasadas' ? 'pasadas' :
-                filtro === 'hoy' ? 'para hoy' :
-                filtro === 'semana' ? 'esta semana' :
-                'futuras'
-              }`}
+              {fechaBusqueda 
+                ? `No hay citas para ${new Date(fechaBusqueda + 'T00:00:00').toLocaleDateString('es-ES', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                  })}`
+                : filtro === 'todas' ? 'No hay citas agendadas' : `No hay citas ${
+                    filtro === 'pasadas' ? 'pasadas' :
+                    filtro === 'hoy' ? 'para hoy' :
+                    filtro === 'semana' ? 'esta semana' :
+                    'futuras'
+                  }`
+              }
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1, mb: 3 }}>
-              {filtro === 'todas' 
-                ? 'Comienza agendando la primera cita con un paciente'
-                : 'Prueba cambiando el filtro para ver otras citas'
+              {fechaBusqueda
+                ? 'Intenta buscar otra fecha o limpia el filtro para ver todas las citas'
+                : filtro === 'todas' 
+                  ? 'Comienza agendando la primera cita con un paciente'
+                  : 'Prueba cambiando el filtro para ver otras citas'
               }
             </Typography>
             <Button
@@ -516,9 +600,9 @@ const Agenda = () => {
             </Button>
           </Paper>
         ) : (
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {citasFiltradas.map((cita) => (
-              <Grid item xs={12} sm={6} md={4} key={cita.id}>
+              <Box key={cita.id} sx={{ flexBasis: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.333% - 16px)' } }}>
                 <Card
                   elevation={4}
                   sx={{
@@ -680,9 +764,9 @@ const Agenda = () => {
                     </Button>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         )}
 
         {/* Diálogo Nueva Cita */}
